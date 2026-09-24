@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Juego Online</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #20232a;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        #menu {
+            width: 400px;
+            max-width: 90%;
+            margin: 60px auto;
+            background: #2c3038;
+            padding: 30px;
+            border-radius: 15px;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #4caf50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #codigoSala {
+            font-size: 30px;
+            font-weight: bold;
+            letter-spacing: 5px;
+            margin: 15px;
+        }
+
+        #juego {
+            display: none;
+        }
+
+        #informacion {
+            padding: 10px;
+        }
+
+        #cancha {
+            width: 800px;
+            height: 500px;
+            max-width: 95vw;
+            margin: auto;
+            background: #6ab04c;
+            border: 5px solid white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .jugador {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .jugador1 {
+            background: #3498db;
+        }
+
+        .jugador2 {
+            background: #e74c3c;
+        }
+
+        .otroJugador {
+            background: #f1c40f;
+        }
+
+        #mensaje {
+            color: #ffd166;
+            margin-top: 15px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- MENU -->
+
+    <div id="menu">
+
+        <h1>🎮 Juego Online</h1>
+
+        <h2>Crear sala</h2>
+
+        <button id="crearSala">
+            Crear sala
+        </button>
+
+
+        <hr>
+
+
+        <h2>Unirse</h2>
+
+        <input
+            id="codigoInput"
+            maxlength="5"
+            placeholder="Código de sala"
+        >
+
+        <button id="unirseSala">
+            Unirse a sala
+        </button>
+
+
+        <p id="mensaje"></p>
+
+    </div>
+
+
+
+    <!-- JUEGO -->
+
+    <div id="juego">
+
+        <div id="informacion">
+
+            <h2>
+                Sala:
+                <span id="codigoSala"></span>
+            </h2>
+
+            <p>
+                Jugadores:
+                <span id="cantidadJugadores">0</span>
+                /4
+            </p>
+
+            <p>
+                Usá W A S D para moverte
+            </p>
+
+        </div>
+
+
+        <div id="cancha"></div>
+
+    </div>
+
+
+
+    <script src="/socket.io/socket.io.js"></script>
+
+
+    <script>
+
+        const socket = io();
+
+
+        const menu = document.getElementById("menu");
+
+        const juego = document.getElementById("juego");
+
+        const crearSala =
+            document.getElementById("crearSala");
+
+        const unirseSala =
+            document.getElementById("unirseSala");
+
+        const codigoInput =
+            document.getElementById("codigoInput");
+
+        const codigoSala =
+            document.getElementById("codigoSala");
+
+        const cantidadJugadores =
+            document.getElementById("cantidadJugadores");
+
+        const cancha =
+            document.getElementById("cancha");
+
+        const mensaje =
+            document.getElementById("mensaje");
+
+
+        let miId = null;
+
+        let miJugador = {
+            x: 200,
+            y: 200
+        };
+
+
+        // ID de nuestro jugador
+
+        socket.on("connect", () => {
+
+            miId = socket.id;
+
+        });
+
+
+        // CREAR SALA
+
+        crearSala.addEventListener("click", () => {
+
+            socket.emit("crearSala");
+
+        });
+
+
+        // UNIRSE
+
+        unirseSala.addEventListener("click", () => {
+
+            const codigo =
+                codigoInput.value.trim();
+
+            if (codigo === "") {
+
+                mensaje.textContent =
+                    "Escribí un código.";
+
+                return;
+            }
+
+            socket.emit(
+                "unirseSala",
+                codigo
+            );
+
+        });
+
+
+        // ENTRAMOS AL JUEGO
+
+        socket.on("salaCreada", (datos) => {
+
+            menu.style.display = "none";
+
+            juego.style.display = "block";
+
+            codigoSala.textContent =
+                datos.codigo;
+
+            cantidadJugadores.textContent =
+                datos.jugadores;
+
+        });
+
+
+        // ACTUALIZAR JUGADORES
+
+        socket.on(
+            "actualizarJugadores",
+            (jugadores) => {
+
+                cantidadJugadores.textContent =
+                    jugadores.length;
+
+                mostrarJugadores(jugadores);
+
+            }
+        );
+
+
+        // ERROR
+
+        socket.on("errorSala", (texto) => {
+
+            mensaje.textContent = texto;
+
+        });
+
+
+        // MOSTRAR JUGADORES
+
+        function mostrarJugadores(jugadores) {
+
+            cancha.innerHTML = "";
+
+            jugadores.forEach((jugador, indice) => {
+
+                const elemento =
+                    document.createElement("div");
+
+                elemento.classList.add("jugador");
+
+                if (jugador.id === miId) {
+
+                    elemento.classList.add(
+                        "jugador1"
+                    );
+
+                    miJugador.x = jugador.x;
+                    miJugador.y = jugador.y;
+
+                } else {
+
+                    elemento.classList.add(
+                        "otroJugador"
+                    );
+
+                }
+
+
+                elemento.style.left =
+                    jugador.x + "px";
+
+                elemento.style.top =
+                    jugador.y + "px";
+
+
+                cancha.appendChild(elemento);
+
+            });
+
+        }
+
+
+        // TECLADO
+
+        const teclas = {};
+
+
+        document.addEventListener(
+            "keydown",
+            (evento) => {
+
+                teclas[evento.key.toLowerCase()] = true;
+
+            }
+        );
+
+
+        document.addEventListener(
+            "keyup",
+            (evento) => {
+
+                teclas[evento.key.toLowerCase()] = false;
+
+            }
+        );
+
+
+        // MOVIMIENTO
+
+        function actualizarMovimiento() {
+
+            if (juego.style.display === "none") {
+
+                requestAnimationFrame(
+                    actualizarMovimiento
+                );
+
+                return;
+            }
+
+
+            const velocidad = 5;
+
+
+            if (teclas["w"]) {
+
+                miJugador.y -= velocidad;
+
+            }
+
+            if (teclas["s"]) {
+
+                miJugador.y += velocidad;
+
+            }
+
+            if (teclas["a"]) {
+
+                miJugador.x -= velocidad;
+
+            }
+
+            if (teclas["d"]) {
+
+                miJugador.x += velocidad;
+
+            }
+
+
+            // Limitar dentro de la cancha
+
+            miJugador.x =
+                Math.max(
+                    20,
+                    Math.min(
+                        780,
+                        miJugador.x
+                    )
+                );
+
+
+            miJugador.y =
+                Math.max(
+                    20,
+                    Math.min(
+                        480,
+                        miJugador.y
+                    )
+                );
+
+
+            // Mandar posición al servidor
+
+            if (
+                teclas["w"] ||
+                teclas["s"] ||
+                teclas["a"] ||
+                teclas["d"]
+            ) {
+
+                socket.emit(
+                    "moverJugador",
+                    miJugador
+                );
+
+            }
+
+
+            requestAnimationFrame(
+                actualizarMovimiento
+            );
+
+        }
+
+
+        actualizarMovimiento();
+
+    </script>
+
+</body>
+
+</html>

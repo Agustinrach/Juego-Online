@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 
@@ -90,12 +91,8 @@
             background: #3498db;
         }
 
-        .jugador2 {
-            background: #e74c3c;
-        }
-
         .otroJugador {
-            background: #f1c40f;
+            background: #e74c3c;
         }
 
         #mensaje {
@@ -111,7 +108,9 @@
 <body>
 
 
+    <!-- ========================= -->
     <!-- MENU -->
+    <!-- ========================= -->
 
     <div id="menu">
 
@@ -130,6 +129,7 @@
         <h2>Unirse</h2>
 
         <input
+            type="text"
             id="codigoInput"
             maxlength="5"
             placeholder="Código de sala"
@@ -146,7 +146,9 @@
 
 
 
+    <!-- ========================= -->
     <!-- JUEGO -->
+    <!-- ========================= -->
 
     <div id="juego">
 
@@ -176,6 +178,8 @@
 
 
 
+    <!-- SOCKET.IO -->
+
     <script src="/socket.io/socket.io.js"></script>
 
 
@@ -184,9 +188,15 @@
         const socket = io();
 
 
-        const menu = document.getElementById("menu");
+        // =========================
+        // ELEMENTOS
+        // =========================
 
-        const juego = document.getElementById("juego");
+        const menu =
+            document.getElementById("menu");
+
+        const juego =
+            document.getElementById("juego");
 
         const crearSala =
             document.getElementById("crearSala");
@@ -210,6 +220,10 @@
             document.getElementById("mensaje");
 
 
+        // =========================
+        // JUGADOR LOCAL
+        // =========================
+
         let miId = null;
 
         let miJugador = {
@@ -218,65 +232,102 @@
         };
 
 
-        // ID de nuestro jugador
+        // =========================
+        // TECLADO
+        // =========================
 
+        const teclas = {};
+
+
+        // Cuando se conecta
         socket.on("connect", () => {
 
             miId = socket.id;
 
-        });
-
-
-        // CREAR SALA
-
-        crearSala.addEventListener("click", () => {
-
-            socket.emit("crearSala");
-
-        });
-
-
-        // UNIRSE
-
-        unirseSala.addEventListener("click", () => {
-
-            const codigo =
-                codigoInput.value.trim();
-
-            if (codigo === "") {
-
-                mensaje.textContent =
-                    "Escribí un código.";
-
-                return;
-            }
-
-            socket.emit(
-                "unirseSala",
-                codigo
+            console.log(
+                "Conectado:",
+                miId
             );
 
         });
 
 
-        // ENTRAMOS AL JUEGO
+        // =========================
+        // CREAR SALA
+        // =========================
 
-        socket.on("salaCreada", (datos) => {
+        crearSala.addEventListener(
+            "click",
+            () => {
 
-            menu.style.display = "none";
+                socket.emit("crearSala");
 
-            juego.style.display = "block";
-
-            codigoSala.textContent =
-                datos.codigo;
-
-            cantidadJugadores.textContent =
-                datos.jugadores;
-
-        });
+            }
+        );
 
 
+        // =========================
+        // UNIRSE A SALA
+        // =========================
+
+        unirseSala.addEventListener(
+            "click",
+            () => {
+
+                const codigo =
+                    codigoInput.value
+                        .trim()
+                        .toUpperCase();
+
+
+                if (codigo === "") {
+
+                    mensaje.textContent =
+                        "Escribí un código.";
+
+                    return;
+
+                }
+
+
+                socket.emit(
+                    "unirseSala",
+                    codigo
+                );
+
+            }
+        );
+
+
+        // =========================
+        // SALA CREADA
+        // =========================
+
+        socket.on(
+            "salaCreada",
+            (datos) => {
+
+                menu.style.display =
+                    "none";
+
+                juego.style.display =
+                    "block";
+
+
+                codigoSala.textContent =
+                    datos.codigo;
+
+
+                cantidadJugadores.textContent =
+                    datos.jugadores;
+
+            }
+        );
+
+
+        // =========================
         // ACTUALIZAR JUGADORES
+        // =========================
 
         socket.on(
             "actualizarJugadores",
@@ -285,134 +336,363 @@
                 cantidadJugadores.textContent =
                     jugadores.length;
 
-                mostrarJugadores(jugadores);
+
+                mostrarJugadores(
+                    jugadores
+                );
 
             }
         );
 
 
-        // ERROR
+        // =========================
+        // ERROR DE SALA
+        // =========================
 
-        socket.on("errorSala", (texto) => {
+        socket.on(
+            "errorSala",
+            (texto) => {
 
-            mensaje.textContent = texto;
+                mensaje.textContent =
+                    texto;
 
-        });
+            }
+        );
 
 
+        // =========================
         // MOSTRAR JUGADORES
+        // =========================
 
         function mostrarJugadores(jugadores) {
 
-            cancha.innerHTML = "";
 
-            jugadores.forEach((jugador, indice) => {
+            jugadores.forEach(
+                (jugador) => {
 
-                const elemento =
-                    document.createElement("div");
 
-                elemento.classList.add("jugador");
+                    let elemento =
+                        document.getElementById(
+                            "jugador-" +
+                            jugador.id
+                        );
 
-                if (jugador.id === miId) {
 
-                    elemento.classList.add(
-                        "jugador1"
-                    );
+                    // Crear jugador si no existe
 
-                    miJugador.x = jugador.x;
-                    miJugador.y = jugador.y;
+                    if (!elemento) {
 
-                } else {
+                        elemento =
+                            document.createElement(
+                                "div"
+                            );
 
-                    elemento.classList.add(
-                        "otroJugador"
-                    );
+
+                        elemento.id =
+                            "jugador-" +
+                            jugador.id;
+
+
+                        elemento.classList.add(
+                            "jugador"
+                        );
+
+
+                        if (
+                            jugador.id ===
+                            miId
+                        ) {
+
+                            elemento.classList.add(
+                                "jugador1"
+                            );
+
+                        } else {
+
+                            elemento.classList.add(
+                                "otroJugador"
+                            );
+
+                        }
+
+
+                        cancha.appendChild(
+                            elemento
+                        );
+
+                    }
+
+
+                    // IMPORTANTE:
+                    //
+                    // NO actualizamos la posición
+                    // del jugador local.
+                    //
+                    // El jugador local se mueve
+                    // directamente en su navegador.
+
+                    if (
+                        jugador.id !==
+                        miId
+                    ) {
+
+                        elemento.style.left =
+                            jugador.x + "px";
+
+
+                        elemento.style.top =
+                            jugador.y + "px";
+
+                    }
 
                 }
+            );
 
 
-                elemento.style.left =
-                    jugador.x + "px";
+            // =========================
+            // ELIMINAR DESCONECTADOS
+            // =========================
 
-                elemento.style.top =
-                    jugador.y + "px";
+            const idsActuales =
+                jugadores.map(
+                    jugador =>
+                        "jugador-" +
+                        jugador.id
+                );
 
 
-                cancha.appendChild(elemento);
+            document
+                .querySelectorAll(".jugador")
+                .forEach(
+                    (elemento) => {
 
-            });
+                        if (
+                            !idsActuales.includes(
+                                elemento.id
+                            )
+                        ) {
+
+                            elemento.remove();
+
+                        }
+
+                    }
+                );
+
+
+            // =========================
+            // ASEGURAR POSICIÓN LOCAL
+            // =========================
+
+            let jugadorLocal =
+                document.getElementById(
+                    "jugador-" +
+                    miId
+                );
+
+
+            if (jugadorLocal) {
+
+                jugadorLocal.style.left =
+                    miJugador.x + "px";
+
+                jugadorLocal.style.top =
+                    miJugador.y + "px";
+
+            }
 
         }
 
 
-        // TECLADO
-
-        const teclas = {};
-
+        // =========================
+        // TECLA PRESIONADA
+        // =========================
 
         document.addEventListener(
             "keydown",
             (evento) => {
 
-                teclas[evento.key.toLowerCase()] = true;
+                const tecla =
+                    evento.key.toLowerCase();
+
+
+                if (
+                    tecla === "w" ||
+                    tecla === "a" ||
+                    tecla === "s" ||
+                    tecla === "d"
+                ) {
+
+                    evento.preventDefault();
+
+                    teclas[tecla] = true;
+
+                }
 
             }
         );
 
+
+        // =========================
+        // TECLA SOLTADA
+        // =========================
 
         document.addEventListener(
             "keyup",
             (evento) => {
 
-                teclas[evento.key.toLowerCase()] = false;
+                const tecla =
+                    evento.key.toLowerCase();
+
+
+                if (
+                    tecla === "w" ||
+                    tecla === "a" ||
+                    tecla === "s" ||
+                    tecla === "d"
+                ) {
+
+                    teclas[tecla] = false;
+
+                }
 
             }
         );
 
 
+        // =========================
+        // EVITAR TECLAS TRABADAS
+        // =========================
+
+        window.addEventListener(
+            "blur",
+            () => {
+
+                teclas["w"] = false;
+                teclas["a"] = false;
+                teclas["s"] = false;
+                teclas["d"] = false;
+
+            }
+        );
+
+
+        // =========================
+        // ENVIAR POSICIÓN
+        // =========================
+
+        let ultimoEnvio = 0;
+
+
+        function enviarPosicion() {
+
+            const ahora =
+                Date.now();
+
+
+            // Máximo un envío cada 30 ms
+
+            if (
+                ahora - ultimoEnvio < 30
+            ) {
+
+                return;
+
+            }
+
+
+            ultimoEnvio = ahora;
+
+
+            socket.emit(
+                "moverJugador",
+                {
+                    x: miJugador.x,
+                    y: miJugador.y
+                }
+            );
+
+        }
+
+
+        // =========================
         // MOVIMIENTO
+        // =========================
 
         function actualizarMovimiento() {
 
-            if (juego.style.display === "none") {
+
+            if (
+                juego.style.display ===
+                "none"
+            ) {
 
                 requestAnimationFrame(
                     actualizarMovimiento
                 );
 
                 return;
+
             }
 
 
             const velocidad = 5;
 
 
+            let seEstaMoviendo = false;
+
+
+            // ARRIBA
+
             if (teclas["w"]) {
 
-                miJugador.y -= velocidad;
+                miJugador.y -=
+                    velocidad;
+
+                seEstaMoviendo = true;
 
             }
+
+
+            // ABAJO
 
             if (teclas["s"]) {
 
-                miJugador.y += velocidad;
+                miJugador.y +=
+                    velocidad;
+
+                seEstaMoviendo = true;
 
             }
+
+
+            // IZQUIERDA
 
             if (teclas["a"]) {
 
-                miJugador.x -= velocidad;
+                miJugador.x -=
+                    velocidad;
+
+                seEstaMoviendo = true;
 
             }
+
+
+            // DERECHA
 
             if (teclas["d"]) {
 
-                miJugador.x += velocidad;
+                miJugador.x +=
+                    velocidad;
+
+                seEstaMoviendo = true;
 
             }
 
 
-            // Limitar dentro de la cancha
+            // =========================
+            // LIMITES DE LA CANCHA
+            // =========================
 
             miJugador.x =
                 Math.max(
@@ -434,19 +714,35 @@
                 );
 
 
-            // Mandar posición al servidor
+            // =========================
+            // DIBUJAR JUGADOR LOCAL
+            // =========================
 
-            if (
-                teclas["w"] ||
-                teclas["s"] ||
-                teclas["a"] ||
-                teclas["d"]
-            ) {
-
-                socket.emit(
-                    "moverJugador",
-                    miJugador
+            const jugadorLocal =
+                document.getElementById(
+                    "jugador-" +
+                    miId
                 );
+
+
+            if (jugadorLocal) {
+
+                jugadorLocal.style.left =
+                    miJugador.x + "px";
+
+                jugadorLocal.style.top =
+                    miJugador.y + "px";
+
+            }
+
+
+            // =========================
+            // ENVIAR AL SERVIDOR
+            // =========================
+
+            if (seEstaMoviendo) {
+
+                enviarPosicion();
 
             }
 
@@ -458,10 +754,16 @@
         }
 
 
+        // =========================
+        // INICIAR BUCLE
+        // =========================
+
         actualizarMovimiento();
+
 
     </script>
 
 </body>
 
 </html>
+```

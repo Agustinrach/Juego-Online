@@ -11,9 +11,29 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const salas = new Map();
 
+// ===============================
+// CONFIGURACIÓN DEL JUEGO
+// ===============================
+
+const ANCHO_MAPA = 5000;
+const ALTO_MAPA = 600;
+
+const META_X = ANCHO_MAPA - 150;
+
+const VELOCIDAD_ALIADO = 5;
+const VELOCIDAD_ENEMIGO = 3.5;
+
+const DURACION_RALENTIZADO = 4000;
+const MULTIPLICADOR_RALENTIZADO = 0.45;
+
+const RADIO_JUGADOR = 20;
+const RADIO_CONTACTO = 40;
+const RADIO_TRAMPA = 28;
+
+const TIEMPO_COOLDOWN_TRAMPA = 5000;
 
 // ===============================
-// GENERAR CÓDIGO
+// GENERAR CÓDIGO DE SALA
 // ===============================
 
 function generarCodigo() {
@@ -36,6 +56,20 @@ function generarCodigo() {
     return codigo;
 }
 
+// ===============================
+// CREAR ESTADO DE UNA SALA
+// ===============================
+
+function crearEstadoSala() {
+
+    return {
+        iniciada: false,
+        finalizada: false,
+        trampas: [],
+        siguienteTrampaId: 1
+    };
+
+}
 
 // ===============================
 // ENVIAR JUGADORES
@@ -48,7 +82,14 @@ function enviarJugadores(codigo) {
     if (!sala) return;
 
     const jugadores =
-        Array.from(sala.values());
+        Array.from(sala.jugadores.values()).map(jugador => ({
+            id: jugador.id,
+            x: jugador.x,
+            y: jugador.y,
+            rol: jugador.rol,
+            muerto: jugador.muerto,
+            ralentizadoHasta: jugador.ralentizadoHasta || 0
+        }));
 
     io.to(codigo).emit(
         "actualizarJugadores",
@@ -56,9 +97,30 @@ function enviarJugadores(codigo) {
     );
 }
 
+// ===============================
+// ENVIAR ESTADO DEL MAPA
+// ===============================
+
+function enviarEstadoMapa(codigo) {
+
+    const sala = salas.get(codigo);
+
+    if (!sala) return;
+
+    io.to(codigo).emit(
+        "actualizarMapa",
+        {
+            ancho: ANCHO_MAPA,
+            alto: ALTO_MAPA,
+            metaX: META_X,
+            trampas: sala.estado.trampas
+        }
+    );
+
+}
 
 // ===============================
-// ACTUALIZAR ROLES
+// ENVIAR ROLES
 // ===============================
 
 function enviarRoles(codigo) {
@@ -70,7 +132,7 @@ function enviarRoles(codigo) {
     let aliados = 0;
     let enemigo = false;
 
-    for (const jugador of sala.values()) {
+    for (const jugador of sala.jugadores.values()) {
 
         if (jugador.rol === "aliado") {
             aliados++;
@@ -91,7 +153,6 @@ function enviarRoles(codigo) {
     );
 }
 
-
 // ===============================
 // COMPROBAR SI LA PARTIDA PUEDE EMPEZAR
 // ===============================
@@ -102,14 +163,14 @@ function partidaLista(codigo) {
 
     if (!sala) return false;
 
-    if (sala.size !== 4) {
+    if (sala.jugadores.size !== 4) {
         return false;
     }
 
     let aliados = 0;
     let enemigos = 0;
 
-    for (const jugador of sala.values()) {
+    for (const jugador of sala.jugadores.values()) {
 
         if (jugador.rol === "aliado") {
             aliados++;
@@ -124,6 +185,270 @@ function partidaLista(codigo) {
     return aliados === 3 && enemigos === 1;
 }
 
+// ===============================
+// CREAR JUGADOR
+// ===============================
+
+function crearJugador(id, x) {
+
+    return {
+        id: id,
+
+        x: x,
+        y: ALTO_MAPA / 2,
+
+        rol: null,
+
+        muerto: false,
+
+        ralentizadoHasta: 0,
+
+        ultimaPosicionValida: {
+            x: x,
+            y: ALTO_MAPA / 2
+        },
+
+        ultimoMovimiento: Date.now(),
+
+        ultimoUsoTrampa: 0
+    };
+
+}
+
+// ===============================
+// REINICIAR PARTIDA
+// ===============================
+
+function reiniciarPartida(codigo) {
+
+    const sala = salas.get(codigo);
+
+    if (!sala) return;
+
+    sala.estado.iniciada = true;
+    sala.estado.finalizada = false;
+    sala.estado.trampas = [];
+    sala.estado.siguienteTrampaId = 1;
+
+    for (const jugador of sala.jugadores.values()) {
+
+        jugador.muerto = false;
+        jugador.ralentizadoHasta = 0;
+        jugador.ultimoMovimiento = Date.now();
+        jugador.ultimoUsoTrampa = 0;
+
+        if (jugador.rol === "enemigo") {
+
+            jugador.x = 300;
+
+        } else {
+
+            jugador.x = 150;
+
+        }
+
+        jugador.y =
+            ALTO_MAPA / 2 +
+            (Math.random() * 160 - 80);
+
+        jugador.ultimaPosicionValida = {
+            x: jugador.x,
+            y: jugador.y
+        };
+
+    }
+
+    io.to(codigo).emit("partidaIniciada");
+
+    enviarJugadores(codigo);
+    enviarEstadoMapa(codigo);
+
+}
+
+// ===============================
+// COMPROBAR VICTORIA DEL ENEMIGO
+// ===============================
+
+function comprobarVictoriaEnemigo(codigo) {
+
+    const sala = salas.get(codigo);
+
+    if (!sala || sala.estado.finalizada) return;
+
+    let aliadosMuertos = 0;
+
+    for (const jugador of sala.jugadores.values()) {
+
+        if (
+            jugador.rol === "aliado" &&
+            jugador.muerto
+        ) {
+
+            aliadosMuertos++;
+
+        }
+
+    }
+
+    if (aliadosMuertos >= 3) {
+
+        sala.estado.finalizada = true;
+
+        io.to(codigo).emit(
+            "enemigoGana"
+        );
+
+    }
+
+}
+
+// ===============================
+// COMPROBAR VICTORIA DE LOS ALIADOS
+// ===============================
+
+function comprobarVictoriaAliados(codigo) {
+
+    const sala = salas.get(codigo);
+
+    if (!sala || sala.estado.finalizada) return;
+
+    for (const jugador of sala.jugadores.values()) {
+
+        if (
+            jugador.rol === "aliado" &&
+            !jugador.muerto &&
+            jugador.x >= META_X
+        ) {
+
+            sala.estado.finalizada = true;
+
+            io.to(codigo).emit(
+                "aliadosGanan",
+                {
+                    id: jugador.id
+                }
+            );
+
+            return;
+        }
+
+    }
+
+}
+
+// ===============================
+// DETECTAR CONTACTO ENEMIGO / ALIADO
+// ===============================
+
+function comprobarContactoEnemigo(codigo, enemigo) {
+
+    const sala = salas.get(codigo);
+
+    if (!sala || sala.estado.finalizada) return;
+
+    for (const aliado of sala.jugadores.values()) {
+
+        if (aliado.rol !== "aliado") {
+            continue;
+        }
+
+        if (aliado.muerto) {
+            continue;
+        }
+
+        const dx = enemigo.x - aliado.x;
+        const dy = enemigo.y - aliado.y;
+
+        const distancia =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
+
+        if (distancia < RADIO_CONTACTO) {
+
+            aliado.muerto = true;
+
+            io.to(codigo).emit(
+                "aliadoMuerto",
+                {
+                    id: aliado.id
+                }
+            );
+
+            console.log(
+                `El enemigo ${enemigo.id} eliminó a ${aliado.id}`
+            );
+
+        }
+
+    }
+
+    comprobarVictoriaEnemigo(codigo);
+
+}
+
+// ===============================
+// ACTIVAR TRAMPAS
+// ===============================
+
+function comprobarTrampas(codigo, jugador) {
+
+    const sala = salas.get(codigo);
+
+    if (!sala || sala.estado.finalizada) return;
+
+    if (jugador.rol !== "aliado") {
+        return;
+    }
+
+    if (jugador.muerto) {
+        return;
+    }
+
+    for (let i = sala.estado.trampas.length - 1; i >= 0; i--) {
+
+        const trampa =
+            sala.estado.trampas[i];
+
+        const dx =
+            jugador.x - trampa.x;
+
+        const dy =
+            jugador.y - trampa.y;
+
+        const distancia =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
+
+        if (distancia <= RADIO_TRAMPA) {
+
+            jugador.ralentizadoHasta =
+                Date.now() + DURACION_RALENTIZADO;
+
+            sala.estado.trampas.splice(i, 1);
+
+            io.to(codigo).emit(
+                "aliadoRalentizado",
+                {
+                    id: jugador.id,
+                    duracion: DURACION_RALENTIZADO
+                }
+            );
+
+            console.log(
+                `El aliado ${jugador.id} activó una trampa`
+            );
+
+            enviarEstadoMapa(codigo);
+
+        }
+
+    }
+
+}
 
 // ===============================
 // CONEXIÓN
@@ -135,7 +460,6 @@ io.on("connection", (socket) => {
         "Jugador conectado:",
         socket.id
     );
-
 
     // ===========================
     // CREAR SALA
@@ -151,40 +475,30 @@ io.on("connection", (socket) => {
 
         } while (salas.has(codigo));
 
-
         salas.set(
             codigo,
-            new Map()
+            {
+                jugadores: new Map(),
+                estado: crearEstadoSala()
+            }
         );
 
-
         socket.join(codigo);
-
         socket.sala = codigo;
 
-
-        const jugador = {
-
-            id: socket.id,
-
-            x: 200,
-
-            y: 200,
-
-            rol: null,
-
-            muerto: false
-
-        };
-
+        const jugador =
+            crearJugador(
+                socket.id,
+                150
+            );
 
         salas
             .get(codigo)
+            .jugadores
             .set(
                 socket.id,
                 jugador
             );
-
 
         socket.emit(
             "salaCreada",
@@ -194,18 +508,15 @@ io.on("connection", (socket) => {
             }
         );
 
-
         enviarJugadores(codigo);
-
         enviarRoles(codigo);
-
+        enviarEstadoMapa(codigo);
 
         console.log(
             `Sala ${codigo} creada`
         );
 
     });
-
 
     // ===========================
     // UNIRSE A SALA
@@ -220,10 +531,8 @@ io.on("connection", (socket) => {
                     .trim()
                     .toUpperCase();
 
-
             const sala =
                 salas.get(codigo);
-
 
             if (!sala) {
 
@@ -233,11 +542,9 @@ io.on("connection", (socket) => {
                 );
 
                 return;
-
             }
 
-
-            if (sala.size >= 4) {
+            if (sala.jugadores.size >= 4) {
 
                 socket.emit(
                     "errorSala",
@@ -245,49 +552,33 @@ io.on("connection", (socket) => {
                 );
 
                 return;
-
             }
 
-
             socket.join(codigo);
-
             socket.sala = codigo;
 
+            const jugador =
+                crearJugador(
+                    socket.id,
+                    150
+                );
 
-            const jugador = {
-
-                id: socket.id,
-
-                x: 600,
-
-                y: 200,
-
-                rol: null,
-
-                muerto: false
-
-            };
-
-
-            sala.set(
+            sala.jugadores.set(
                 socket.id,
                 jugador
             );
-
 
             socket.emit(
                 "salaCreada",
                 {
                     codigo: codigo,
-                    jugadores: sala.size
+                    jugadores: sala.jugadores.size
                 }
             );
 
-
             enviarJugadores(codigo);
-
             enviarRoles(codigo);
-
+            enviarEstadoMapa(codigo);
 
             console.log(
                 `Jugador ${socket.id} se unió a ${codigo}`
@@ -295,7 +586,6 @@ io.on("connection", (socket) => {
 
         }
     );
-
 
     // ===========================
     // ELEGIR ROL
@@ -307,32 +597,26 @@ io.on("connection", (socket) => {
 
             if (!socket.sala) return;
 
-
             const sala =
                 salas.get(socket.sala);
 
-
             if (!sala) return;
 
-
             const jugador =
-                sala.get(socket.id);
-
+                sala.jugadores.get(socket.id);
 
             if (!jugador) return;
 
-
-            // No permitir cambiar
-            // si ya empezó la partida
-
-            if (
-                partidaLista(socket.sala)
-            ) {
-
+            if (sala.estado.iniciada) {
                 return;
-
             }
 
+            if (
+                rol !== "aliado" &&
+                rol !== "enemigo"
+            ) {
+                return;
+            }
 
             // =========================
             // ENEMIGO
@@ -341,7 +625,7 @@ io.on("connection", (socket) => {
             if (rol === "enemigo") {
 
                 for (
-                    const otro of sala.values()
+                    const otro of sala.jugadores.values()
                 ) {
 
                     if (
@@ -362,7 +646,6 @@ io.on("connection", (socket) => {
 
             }
 
-
             // =========================
             // ALIADO
             // =========================
@@ -371,9 +654,8 @@ io.on("connection", (socket) => {
 
                 let cantidadAliados = 0;
 
-
                 for (
-                    const otro of sala.values()
+                    const otro of sala.jugadores.values()
                 ) {
 
                     if (
@@ -387,10 +669,7 @@ io.on("connection", (socket) => {
 
                 }
 
-
-                if (
-                    cantidadAliados >= 3
-                ) {
+                if (cantidadAliados >= 3) {
 
                     socket.emit(
                         "errorRol",
@@ -403,52 +682,23 @@ io.on("connection", (socket) => {
 
             }
 
-
             jugador.rol = rol;
 
+            enviarJugadores(socket.sala);
+            enviarRoles(socket.sala);
 
-            enviarJugadores(
-                socket.sala
-            );
+            // =========================
+            // INICIAR PARTIDA
+            // =========================
 
+            if (partidaLista(socket.sala)) {
 
-            enviarRoles(
-                socket.sala
-            );
-
-
-            // Si están los 4 y
-            // los roles son correctos,
-            // iniciar partida
-
-            if (
-                partidaLista(socket.sala)
-            ) {
-
-                for (
-                    const jugadorSala
-                    of sala.values()
-                ) {
-
-                    jugadorSala.muerto = false;
-
-                }
-
-
-                io.to(socket.sala).emit(
-                    "partidaIniciada"
-                );
-
-
-                enviarJugadores(
-                    socket.sala
-                );
+                reiniciarPartida(socket.sala);
 
             }
 
         }
     );
-
 
     // ===========================
     // MOVIMIENTO
@@ -460,170 +710,305 @@ io.on("connection", (socket) => {
 
             if (!socket.sala) return;
 
-
             const sala =
                 salas.get(socket.sala);
 
-
             if (!sala) return;
 
-
             const jugador =
-                sala.get(socket.id);
-
+                sala.jugadores.get(socket.id);
 
             if (!jugador) return;
 
+            if (!sala.estado.iniciada) {
+                return;
+            }
 
-            // Un muerto no puede moverse
+            if (sala.estado.finalizada) {
+                return;
+            }
 
             if (jugador.muerto) {
                 return;
             }
 
-
-            // Solo aceptar números
-
             if (
+                !posicion ||
                 typeof posicion.x !== "number" ||
                 typeof posicion.y !== "number"
             ) {
+                return;
+            }
+
+            const ahora = Date.now();
+
+            const deltaTiempo =
+                Math.min(
+                    ahora - jugador.ultimoMovimiento,
+                    100
+                );
+
+            jugador.ultimoMovimiento = ahora;
+
+            // =========================
+            // VELOCIDAD SEGÚN ROL
+            // =========================
+
+            let velocidad =
+                jugador.rol === "enemigo"
+                    ? VELOCIDAD_ENEMIGO
+                    : VELOCIDAD_ALIADO;
+
+            // =========================
+            // RALENTIZACIÓN
+            // =========================
+
+            if (
+                jugador.ralentizadoHasta &&
+                jugador.ralentizadoHasta > ahora
+            ) {
+
+                velocidad *=
+                    MULTIPLICADOR_RALENTIZADO;
+
+            } else {
+
+                jugador.ralentizadoHasta = 0;
+
+            }
+
+            // =========================
+            // LÍMITE DE MOVIMIENTO
+            // =========================
+
+            const dx =
+                posicion.x - jugador.x;
+
+            const dy =
+                posicion.y - jugador.y;
+
+            const distancia =
+                Math.sqrt(
+                    dx * dx +
+                    dy * dy
+                );
+
+            const maximoMovimiento =
+                velocidad *
+                Math.max(
+                    1,
+                    deltaTiempo / 16.67
+                );
+
+            let nuevaX = posicion.x;
+            let nuevaY = posicion.y;
+
+            if (distancia > maximoMovimiento) {
+
+                const factor =
+                    maximoMovimiento /
+                    distancia;
+
+                nuevaX =
+                    jugador.x +
+                    dx * factor;
+
+                nuevaY =
+                    jugador.y +
+                    dy * factor;
+
+            }
+
+            // =========================
+            // LÍMITES DEL MAPA
+            // =========================
+
+            nuevaX =
+                Math.max(
+                    RADIO_JUGADOR,
+                    Math.min(
+                        ANCHO_MAPA - RADIO_JUGADOR,
+                        nuevaX
+                    )
+                );
+
+            nuevaY =
+                Math.max(
+                    RADIO_JUGADOR,
+                    Math.min(
+                        ALTO_MAPA - RADIO_JUGADOR,
+                        nuevaY
+                    )
+                );
+
+            jugador.x = nuevaX;
+            jugador.y = nuevaY;
+
+            jugador.ultimaPosicionValida = {
+                x: jugador.x,
+                y: jugador.y
+            };
+
+            // =========================
+            // CONTACTO CON ENEMIGO
+            // =========================
+
+            if (jugador.rol === "enemigo") {
+
+                comprobarContactoEnemigo(
+                    socket.sala,
+                    jugador
+                );
+
+            }
+
+            // =========================
+            // TRAMPAS
+            // =========================
+
+            if (jugador.rol === "aliado") {
+
+                comprobarTrampas(
+                    socket.sala,
+                    jugador
+                );
+
+                comprobarVictoriaAliados(
+                    socket.sala
+                );
+
+            }
+
+            enviarJugadores(socket.sala);
+
+        }
+    );
+
+    // ===========================
+    // COLOCAR TRAMPA
+    // ===========================
+
+    socket.on(
+        "colocarTrampa",
+        (posicion) => {
+
+            if (!socket.sala) return;
+
+            const sala =
+                salas.get(socket.sala);
+
+            if (!sala) return;
+
+            const jugador =
+                sala.jugadores.get(socket.id);
+
+            if (!jugador) return;
+
+            if (!sala.estado.iniciada) {
+                return;
+            }
+
+            if (sala.estado.finalizada) {
+                return;
+            }
+
+            if (jugador.rol !== "enemigo") {
+                return;
+            }
+
+            if (jugador.muerto) {
+                return;
+            }
+
+            if (
+                !posicion ||
+                typeof posicion.x !== "number" ||
+                typeof posicion.y !== "number"
+            ) {
+                return;
+            }
+
+            const ahora = Date.now();
+
+            // =========================
+            // COOLDOWN
+            // =========================
+
+            if (
+                ahora - jugador.ultimoUsoTrampa <
+                TIEMPO_COOLDOWN_TRAMPA
+            ) {
+
+                const restante =
+                    TIEMPO_COOLDOWN_TRAMPA -
+                    (ahora - jugador.ultimoUsoTrampa);
+
+                socket.emit(
+                    "trampaCooldown",
+                    {
+                        restante: restante
+                    }
+                );
 
                 return;
 
             }
 
-
-            jugador.x = Math.max(
-                20,
-                Math.min(
-                    780,
-                    posicion.x
-                )
-            );
-
-
-            jugador.y = Math.max(
-                20,
-                Math.min(
-                    480,
-                    posicion.y
-                )
-            );
-
-
             // =========================
-            // DETECTAR CONTACTOS
+            // POSICIÓN REAL DEL MAPA
             // =========================
 
-            if (
-                jugador.rol === "enemigo"
-            ) {
+            const x =
+                Math.max(
+                    30,
+                    Math.min(
+                        ANCHO_MAPA - 30,
+                        posicion.x
+                    )
+                );
 
-                for (
-                    const otro
-                    of sala.values()
-                ) {
+            const y =
+                Math.max(
+                    30,
+                    Math.min(
+                        ALTO_MAPA - 30,
+                        posicion.y
+                    )
+                );
 
-                    if (
-                        otro.rol !== "aliado"
-                    ) {
-                        continue;
-                    }
+            const trampa = {
 
+                id:
+                    sala.estado.siguienteTrampaId++,
 
-                    if (otro.muerto) {
-                        continue;
-                    }
+                x: x,
 
+                y: y
 
-                    const dx =
-                        jugador.x - otro.x;
+            };
 
+            sala.estado.trampas.push(
+                trampa
+            );
 
-                    const dy =
-                        jugador.y - otro.y;
+            jugador.ultimoUsoTrampa =
+                ahora;
 
+            io.to(socket.sala).emit(
+                "trampaColocada",
+                trampa
+            );
 
-                    const distancia =
-                        Math.sqrt(
-                            dx * dx +
-                            dy * dy
-                        );
-
-
-                    // 40 + 40 aproximadamente
-
-                    if (
-                        distancia < 40
-                    ) {
-
-                        otro.muerto = true;
-
-
-                        io.to(
-                            socket.sala
-                        ).emit(
-                            "aliadoMuerto",
-                            {
-                                id: otro.id
-                            }
-                        );
-
-
-                        console.log(
-                            `El enemigo ${jugador.id} eliminó a ${otro.id}`
-                        );
-
-                    }
-
-                }
-
-
-                // =========================
-                // COMPROBAR VICTORIA
-                // =========================
-
-                let muertos = 0;
-
-
-                for (
-                    const otro
-                    of sala.values()
-                ) {
-
-                    if (
-                        otro.rol === "aliado" &&
-                        otro.muerto
-                    ) {
-
-                        muertos++;
-
-                    }
-
-                }
-
-
-                if (muertos >= 3) {
-
-                    io.to(
-                        socket.sala
-                    ).emit(
-                        "enemigoGana"
-                    );
-
-                }
-
-            }
-
-
-            enviarJugadores(
+            enviarEstadoMapa(
                 socket.sala
+            );
+
+            console.log(
+                `El enemigo ${jugador.id} colocó una trampa en ${x}, ${y}`
             );
 
         }
     );
-
 
     // ===========================
     // DESCONECTAR
@@ -637,22 +1022,18 @@ io.on("connection", (socket) => {
                 return;
             }
 
-
             const sala =
                 salas.get(socket.sala);
-
 
             if (!sala) {
                 return;
             }
 
-
-            sala.delete(
+            sala.jugadores.delete(
                 socket.id
             );
 
-
-            if (sala.size === 0) {
+            if (sala.jugadores.size === 0) {
 
                 salas.delete(
                     socket.sala
@@ -668,8 +1049,11 @@ io.on("connection", (socket) => {
                     socket.sala
                 );
 
-            }
+                enviarEstadoMapa(
+                    socket.sala
+                );
 
+            }
 
             console.log(
                 "Jugador desconectado:",
@@ -681,10 +1065,12 @@ io.on("connection", (socket) => {
 
 });
 
+// ===============================
+// SERVIDOR
+// ===============================
 
 const PORT =
     process.env.PORT || 3000;
-
 
 server.listen(
     PORT,

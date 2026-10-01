@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 
@@ -6,9 +5,11 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>Juego Online</title>
+
 
     <style>
 
@@ -16,88 +17,284 @@
             box-sizing: border-box;
         }
 
+
         body {
+
             margin: 0;
+
             background: #20232a;
+
             color: white;
+
             font-family: Arial, sans-serif;
+
             text-align: center;
+
         }
 
+
+        /* =========================
+           MENÚ
+        ========================= */
+
         #menu {
+
             width: 400px;
+
             max-width: 90%;
+
             margin: 60px auto;
+
             background: #2c3038;
+
             padding: 30px;
+
             border-radius: 15px;
+
         }
+
 
         input,
         button {
+
             width: 100%;
+
             padding: 12px;
+
             margin-top: 10px;
+
             border: none;
+
             border-radius: 8px;
+
             font-size: 16px;
+
         }
+
 
         button {
+
             background: #4caf50;
+
             color: white;
+
             cursor: pointer;
+
         }
+
 
         button:hover {
+
             background: #45a049;
+
         }
+
 
         #codigoSala {
+
             font-size: 30px;
+
             font-weight: bold;
+
             letter-spacing: 5px;
-            margin: 15px;
+
         }
+
+
+        /* =========================
+           SELECCIÓN DE ROL
+        ========================= */
+
+        #seleccionRol {
+
+            display: none;
+
+            width: 400px;
+
+            max-width: 90%;
+
+            margin: 60px auto;
+
+            background: #2c3038;
+
+            padding: 30px;
+
+            border-radius: 15px;
+
+        }
+
+
+        .rol {
+
+            padding: 20px;
+
+            margin-top: 15px;
+
+            border: 3px solid transparent;
+
+            border-radius: 12px;
+
+            cursor: pointer;
+
+        }
+
+
+        .rol:hover {
+
+            border-color: white;
+
+        }
+
+
+        #botonAliado {
+
+            background: #2980b9;
+
+        }
+
+
+        #botonEnemigo {
+
+            background: #c0392b;
+
+        }
+
+
+        #botonEnemigo:disabled {
+
+            background: #555;
+
+            cursor: not-allowed;
+
+            opacity: 0.6;
+
+        }
+
+
+        #rolElegido {
+
+            margin-top: 15px;
+
+            font-weight: bold;
+
+        }
+
+
+        #estadoRoles {
+
+            margin-top: 20px;
+
+            line-height: 1.8;
+
+        }
+
+
+        /* =========================
+           JUEGO
+        ========================= */
 
         #juego {
+
             display: none;
+
         }
+
 
         #informacion {
+
             padding: 10px;
+
         }
+
 
         #cancha {
+
             width: 800px;
+
             height: 500px;
+
             max-width: 95vw;
+
             margin: auto;
+
             background: #6ab04c;
+
             border: 5px solid white;
+
             position: relative;
+
             overflow: hidden;
+
         }
+
+
+        /* =========================
+           JUGADORES
+        ========================= */
 
         .jugador {
+
             width: 40px;
+
             height: 40px;
+
             position: absolute;
+
             border-radius: 50%;
+
             transform: translate(-50%, -50%);
+
+            transition:
+                background 0.2s,
+                opacity 0.2s;
+
         }
 
-        .jugador1 {
+
+        .aliado {
+
             background: #3498db;
+
         }
 
-        .otroJugador {
+
+        .enemigo {
+
             background: #e74c3c;
+
         }
+
+
+        .muerto {
+
+            background: #777 !important;
+
+            opacity: 0.7;
+
+        }
+
+
+        /* =========================
+           MENSAJES
+        ========================= */
 
         #mensaje {
+
             color: #ffd166;
+
             margin-top: 15px;
+
+        }
+
+
+        #mensajeJuego {
+
+            font-size: 22px;
+
+            font-weight: bold;
+
+            min-height: 30px;
+
         }
 
     </style>
@@ -108,18 +305,22 @@
 <body>
 
 
-    <!-- ========================= -->
-    <!-- MENU -->
-    <!-- ========================= -->
+    <!-- ================================================= -->
+    <!-- MENÚ -->
+    <!-- ================================================= -->
 
     <div id="menu">
 
         <h1>🎮 Juego Online</h1>
 
+
         <h2>Crear sala</h2>
 
+
         <button id="crearSala">
+
             Crear sala
+
         </button>
 
 
@@ -128,6 +329,7 @@
 
         <h2>Unirse</h2>
 
+
         <input
             type="text"
             id="codigoInput"
@@ -135,8 +337,11 @@
             placeholder="Código de sala"
         >
 
+
         <button id="unirseSala">
+
             Unirse a sala
+
         </button>
 
 
@@ -146,129 +351,304 @@
 
 
 
-    <!-- ========================= -->
+    <!-- ================================================= -->
+    <!-- SELECCIÓN DE ROL -->
+    <!-- ================================================= -->
+
+    <div id="seleccionRol">
+
+        <h1>⚔️ Elegí tu equipo</h1>
+
+
+        <p>
+
+            Sala:
+            <strong id="codigoSalaRol"></strong>
+
+        </p>
+
+
+        <div
+            id="botonAliado"
+            class="rol"
+        >
+
+            🔵
+
+            <h2>ALIADO</h2>
+
+            <p>
+                Tu objetivo es sobrevivir.
+            </p>
+
+        </div>
+
+
+        <div
+            id="botonEnemigo"
+            class="rol"
+        >
+
+            🔴
+
+            <h2>ENEMIGO</h2>
+
+            <p>
+                Tocá a los 3 aliados.
+            </p>
+
+        </div>
+
+
+        <div id="estadoRoles">
+
+            🔵 Aliados:
+            <span id="cantidadAliados">0</span>/3
+
+            <br>
+
+            🔴 Enemigo:
+            <span id="estadoEnemigo">
+                Disponible
+            </span>
+
+        </div>
+
+
+        <div id="rolElegido">
+
+            No elegiste un equipo.
+
+        </div>
+
+
+        <p id="mensajeRol"></p>
+
+    </div>
+
+
+
+    <!-- ================================================= -->
     <!-- JUEGO -->
-    <!-- ========================= -->
+    <!-- ================================================= -->
 
     <div id="juego">
+
 
         <div id="informacion">
 
             <h2>
+
                 Sala:
                 <span id="codigoSala"></span>
+
             </h2>
 
-            <p>
-                Jugadores:
-                <span id="cantidadJugadores">0</span>
-                /4
-            </p>
 
             <p>
-                Usá W A S D para moverte
+
+                Jugadores:
+                <span id="cantidadJugadores">
+                    0
+                </span>/4
+
             </p>
+
+
+            <p>
+
+                Usá W A S D para moverte.
+
+            </p>
+
+
+            <div id="mensajeJuego"></div>
 
         </div>
 
 
         <div id="cancha"></div>
 
+
     </div>
 
 
-
-    <!-- SOCKET.IO -->
 
     <script src="/socket.io/socket.io.js"></script>
 
 
     <script>
 
+
+        // =================================================
+        // SOCKET
+        // =================================================
+
         const socket = io();
 
 
-        // =========================
+        // =================================================
         // ELEMENTOS
-        // =========================
+        // =================================================
 
         const menu =
             document.getElementById("menu");
 
+
+        const seleccionRol =
+            document.getElementById(
+                "seleccionRol"
+            );
+
+
         const juego =
             document.getElementById("juego");
+
 
         const crearSala =
             document.getElementById("crearSala");
 
+
         const unirseSala =
             document.getElementById("unirseSala");
+
 
         const codigoInput =
             document.getElementById("codigoInput");
 
+
+        const codigoSalaRol =
+            document.getElementById(
+                "codigoSalaRol"
+            );
+
+
         const codigoSala =
-            document.getElementById("codigoSala");
+            document.getElementById(
+                "codigoSala"
+            );
+
 
         const cantidadJugadores =
-            document.getElementById("cantidadJugadores");
+            document.getElementById(
+                "cantidadJugadores"
+            );
 
-        const cancha =
-            document.getElementById("cancha");
+
+        const botonAliado =
+            document.getElementById(
+                "botonAliado"
+            );
+
+
+        const botonEnemigo =
+            document.getElementById(
+                "botonEnemigo"
+            );
+
+
+        const cantidadAliados =
+            document.getElementById(
+                "cantidadAliados"
+            );
+
+
+        const estadoEnemigo =
+            document.getElementById(
+                "estadoEnemigo"
+            );
+
+
+        const rolElegido =
+            document.getElementById(
+                "rolElegido"
+            );
+
 
         const mensaje =
-            document.getElementById("mensaje");
+            document.getElementById(
+                "mensaje"
+            );
 
 
-        // =========================
-        // JUGADOR LOCAL
-        // =========================
+        const mensajeRol =
+            document.getElementById(
+                "mensajeRol"
+            );
+
+
+        const mensajeJuego =
+            document.getElementById(
+                "mensajeJuego"
+            );
+
+
+        const cancha =
+            document.getElementById(
+                "cancha"
+            );
+
+
+        // =================================================
+        // JUGADOR
+        // =================================================
 
         let miId = null;
 
+        let miRol = null;
+
         let miJugador = {
+
             x: 200,
+
             y: 200
+
         };
 
 
-        // =========================
-        // TECLADO
-        // =========================
+        let partidaComenzada = false;
 
-        const teclas = {};
+        let teclas = {};
 
 
-        // Cuando se conecta
-        socket.on("connect", () => {
+        // =================================================
+        // CONEXIÓN
+        // =================================================
 
-            miId = socket.id;
-
-            console.log(
-                "Conectado:",
-                miId
-            );
-
-        });
-
-
-        // =========================
-        // CREAR SALA
-        // =========================
-
-        crearSala.addEventListener(
-            "click",
+        socket.on(
+            "connect",
             () => {
 
-                socket.emit("crearSala");
+                miId = socket.id;
+
+                console.log(
+                    "Conectado:",
+                    miId
+                );
 
             }
         );
 
 
-        // =========================
-        // UNIRSE A SALA
-        // =========================
+        // =================================================
+        // CREAR SALA
+        // =================================================
+
+        crearSala.addEventListener(
+            "click",
+            () => {
+
+                socket.emit(
+                    "crearSala"
+                );
+
+            }
+        );
+
+
+        // =================================================
+        // UNIRSE
+        // =================================================
 
         unirseSala.addEventListener(
             "click",
@@ -280,7 +660,7 @@
                         .toUpperCase();
 
 
-                if (codigo === "") {
+                if (!codigo) {
 
                     mensaje.textContent =
                         "Escribí un código.";
@@ -299,9 +679,9 @@
         );
 
 
-        // =========================
-        // SALA CREADA
-        // =========================
+        // =================================================
+        // ENTRÓ A LA SALA
+        // =================================================
 
         socket.on(
             "salaCreada",
@@ -310,24 +690,140 @@
                 menu.style.display =
                     "none";
 
-                juego.style.display =
+
+                seleccionRol.style.display =
                     "block";
 
 
-                codigoSala.textContent =
+                codigoSalaRol.textContent =
                     datos.codigo;
-
-
-                cantidadJugadores.textContent =
-                    datos.jugadores;
 
             }
         );
 
 
-        // =========================
+        // =================================================
+        // ELEGIR ALIADO
+        // =================================================
+
+        botonAliado.addEventListener(
+            "click",
+            () => {
+
+                socket.emit(
+                    "elegirRol",
+                    "aliado"
+                );
+
+            }
+        );
+
+
+        // =================================================
+        // ELEGIR ENEMIGO
+        // =================================================
+
+        botonEnemigo.addEventListener(
+            "click",
+            () => {
+
+                if (
+                    botonEnemigo.disabled
+                ) {
+
+                    return;
+
+                }
+
+
+                socket.emit(
+                    "elegirRol",
+                    "enemigo"
+                );
+
+            }
+        );
+
+
+        // =================================================
+        // ACTUALIZAR ROLES
+        // =================================================
+
+        socket.on(
+            "actualizarRoles",
+            (datos) => {
+
+                cantidadAliados.textContent =
+                    datos.aliados;
+
+
+                if (datos.enemigo) {
+
+                    estadoEnemigo.textContent =
+                        "Ocupado";
+
+                    botonEnemigo.disabled =
+                        true;
+
+                } else {
+
+                    estadoEnemigo.textContent =
+                        "Disponible";
+
+                    botonEnemigo.disabled =
+                        false;
+
+                }
+
+            }
+        );
+
+
+        // =================================================
+        // ERROR DE ROL
+        // =================================================
+
+        socket.on(
+            "errorRol",
+            (texto) => {
+
+                mensajeRol.textContent =
+                    texto;
+
+            }
+        );
+
+
+        // =================================================
+        // PARTIDA INICIADA
+        // =================================================
+
+        socket.on(
+            "partidaIniciada",
+            () => {
+
+                partidaComenzada =
+                    true;
+
+
+                seleccionRol.style.display =
+                    "none";
+
+
+                juego.style.display =
+                    "block";
+
+
+                mensajeJuego.textContent =
+                    "¡La partida comenzó!";
+
+            }
+        );
+
+
+        // =================================================
         // ACTUALIZAR JUGADORES
-        // =========================
+        // =================================================
 
         socket.on(
             "actualizarJugadores",
@@ -345,27 +841,13 @@
         );
 
 
-        // =========================
-        // ERROR DE SALA
-        // =========================
-
-        socket.on(
-            "errorSala",
-            (texto) => {
-
-                mensaje.textContent =
-                    texto;
-
-            }
-        );
-
-
-        // =========================
+        // =================================================
         // MOSTRAR JUGADORES
-        // =========================
+        // =================================================
 
-        function mostrarJugadores(jugadores) {
-
+        function mostrarJugadores(
+            jugadores
+        ) {
 
             jugadores.forEach(
                 (jugador) => {
@@ -377,8 +859,6 @@
                             jugador.id
                         );
 
-
-                    // Crear jugador si no existe
 
                     if (!elemento) {
 
@@ -398,24 +878,6 @@
                         );
 
 
-                        if (
-                            jugador.id ===
-                            miId
-                        ) {
-
-                            elemento.classList.add(
-                                "jugador1"
-                            );
-
-                        } else {
-
-                            elemento.classList.add(
-                                "otroJugador"
-                            );
-
-                        }
-
-
                         cancha.appendChild(
                             elemento
                         );
@@ -423,13 +885,62 @@
                     }
 
 
-                    // IMPORTANTE:
-                    //
-                    // NO actualizamos la posición
-                    // del jugador local.
-                    //
-                    // El jugador local se mueve
-                    // directamente en su navegador.
+                    // Limpiar clases
+
+                    elemento.classList.remove(
+                        "aliado",
+                        "enemigo",
+                        "muerto"
+                    );
+
+
+                    // Color según rol
+
+                    if (
+                        jugador.rol ===
+                        "enemigo"
+                    ) {
+
+                        elemento.classList.add(
+                            "enemigo"
+                        );
+
+                    } else {
+
+                        elemento.classList.add(
+                            "aliado"
+                        );
+
+                    }
+
+
+                    // Muerto
+
+                    if (
+                        jugador.muerto
+                    ) {
+
+                        elemento.classList.add(
+                            "muerto"
+                        );
+
+                    }
+
+
+                    // Guardar nuestro rol
+
+                    if (
+                        jugador.id ===
+                        miId
+                    ) {
+
+                        miRol =
+                            jugador.rol;
+
+                    }
+
+
+                    // Posición remota
 
                     if (
                         jugador.id !==
@@ -449,9 +960,9 @@
             );
 
 
-            // =========================
+            // =========================================
             // ELIMINAR DESCONECTADOS
-            // =========================
+            // =========================================
 
             const idsActuales =
                 jugadores.map(
@@ -462,7 +973,9 @@
 
 
             document
-                .querySelectorAll(".jugador")
+                .querySelectorAll(
+                    ".jugador"
+                )
                 .forEach(
                     (elemento) => {
 
@@ -480,11 +993,11 @@
                 );
 
 
-            // =========================
-            // ASEGURAR POSICIÓN LOCAL
-            // =========================
+            // =========================================
+            // DIBUJAR JUGADOR LOCAL
+            // =========================================
 
-            let jugadorLocal =
+            const jugadorLocal =
                 document.getElementById(
                     "jugador-" +
                     miId
@@ -496,6 +1009,7 @@
                 jugadorLocal.style.left =
                     miJugador.x + "px";
 
+
                 jugadorLocal.style.top =
                     miJugador.y + "px";
 
@@ -504,9 +1018,73 @@
         }
 
 
-        // =========================
-        // TECLA PRESIONADA
-        // =========================
+        // =================================================
+        // ALIADO MUERE
+        // =================================================
+
+        socket.on(
+            "aliadoMuerto",
+            (datos) => {
+
+                const jugador =
+                    document.getElementById(
+                        "jugador-" +
+                        datos.id
+                    );
+
+
+                if (jugador) {
+
+                    jugador.classList.add(
+                        "muerto"
+                    );
+
+                }
+
+
+                if (
+                    datos.id === miId
+                ) {
+
+                    // Detener movimiento
+
+                    teclas = {};
+
+
+                    mensajeJuego.textContent =
+                        "💀 ¡Fuiste eliminado!";
+
+                }
+
+            }
+        );
+
+
+        // =================================================
+        // ENEMIGO GANA
+        // =================================================
+
+        socket.on(
+            "enemigoGana",
+            () => {
+
+                partidaComenzada =
+                    false;
+
+
+                teclas = {};
+
+
+                mensajeJuego.textContent =
+                    "🔴 ¡EL ENEMIGO GANA!";
+
+            }
+        );
+
+
+        // =================================================
+        // TECLADO
+        // =================================================
 
         document.addEventListener(
             "keydown",
@@ -525,17 +1103,14 @@
 
                     evento.preventDefault();
 
-                    teclas[tecla] = true;
+                    teclas[tecla] =
+                        true;
 
                 }
 
             }
         );
 
-
-        // =========================
-        // TECLA SOLTADA
-        // =========================
 
         document.addEventListener(
             "keyup",
@@ -552,7 +1127,8 @@
                     tecla === "d"
                 ) {
 
-                    teclas[tecla] = false;
+                    teclas[tecla] =
+                        false;
 
                 }
 
@@ -560,26 +1136,19 @@
         );
 
 
-        // =========================
-        // EVITAR TECLAS TRABADAS
-        // =========================
-
         window.addEventListener(
             "blur",
             () => {
 
-                teclas["w"] = false;
-                teclas["a"] = false;
-                teclas["s"] = false;
-                teclas["d"] = false;
+                teclas = {};
 
             }
         );
 
 
-        // =========================
+        // =================================================
         // ENVIAR POSICIÓN
-        // =========================
+        // =================================================
 
         let ultimoEnvio = 0;
 
@@ -590,8 +1159,6 @@
                 Date.now();
 
 
-            // Máximo un envío cada 30 ms
-
             if (
                 ahora - ultimoEnvio < 30
             ) {
@@ -601,7 +1168,8 @@
             }
 
 
-            ultimoEnvio = ahora;
+            ultimoEnvio =
+                ahora;
 
 
             socket.emit(
@@ -615,16 +1183,15 @@
         }
 
 
-        // =========================
+        // =================================================
         // MOVIMIENTO
-        // =========================
+        // =================================================
 
         function actualizarMovimiento() {
 
 
             if (
-                juego.style.display ===
-                "none"
+                !partidaComenzada
             ) {
 
                 requestAnimationFrame(
@@ -639,60 +1206,50 @@
             const velocidad = 5;
 
 
-            let seEstaMoviendo = false;
+            let moviendo = false;
 
-
-            // ARRIBA
 
             if (teclas["w"]) {
 
                 miJugador.y -=
                     velocidad;
 
-                seEstaMoviendo = true;
+                moviendo = true;
 
             }
 
-
-            // ABAJO
 
             if (teclas["s"]) {
 
                 miJugador.y +=
                     velocidad;
 
-                seEstaMoviendo = true;
+                moviendo = true;
 
             }
 
-
-            // IZQUIERDA
 
             if (teclas["a"]) {
 
                 miJugador.x -=
                     velocidad;
 
-                seEstaMoviendo = true;
+                moviendo = true;
 
             }
 
-
-            // DERECHA
 
             if (teclas["d"]) {
 
                 miJugador.x +=
                     velocidad;
 
-                seEstaMoviendo = true;
+                moviendo = true;
 
             }
 
 
-            // =========================
-            // LIMITES DE LA CANCHA
-            // =========================
+            // Límites
 
             miJugador.x =
                 Math.max(
@@ -714,9 +1271,7 @@
                 );
 
 
-            // =========================
-            // DIBUJAR JUGADOR LOCAL
-            // =========================
+            // Dibujar local
 
             const jugadorLocal =
                 document.getElementById(
@@ -730,17 +1285,14 @@
                 jugadorLocal.style.left =
                     miJugador.x + "px";
 
+
                 jugadorLocal.style.top =
                     miJugador.y + "px";
 
             }
 
 
-            // =========================
-            // ENVIAR AL SERVIDOR
-            // =========================
-
-            if (seEstaMoviendo) {
+            if (moviendo) {
 
                 enviarPosicion();
 
@@ -754,16 +1306,10 @@
         }
 
 
-        // =========================
-        // INICIAR BUCLE
-        // =========================
-
         actualizarMovimiento();
-
 
     </script>
 
 </body>
 
 </html>
-```

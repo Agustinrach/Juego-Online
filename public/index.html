@@ -1,846 +1,409 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego Online</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            background: #20232a;
-            color: white;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-
-        #menu,
-        #seleccionRol {
-            width: 400px;
-            max-width: 90%;
-            margin: 50px auto;
-            background: #2c3038;
-            padding: 25px;
-            border-radius: 15px;
-        }
-
-        #seleccionRol,
-        #juego {
-            display: none;
-        }
-
-        input,
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-
-        button {
-            background: #4caf50;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #45a049;
-        }
-
-        .rol {
-            padding: 15px;
-            margin-top: 15px;
-            border: 3px solid transparent;
-            border-radius: 12px;
-            cursor: pointer;
-        }
-
-        .rol:hover {
-            border-color: white;
-        }
-
-        #botonAliado {
-            background: #2980b9;
-        }
-
-        #botonEnemigo {
-            background: #c0392b;
-        }
-
-        #botonEnemigo:disabled {
-            background: #555;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        #estadoRoles {
-            margin-top: 20px;
-            line-height: 1.8;
-        }
-
-        #mensaje,
-        #mensajeRol {
-            color: #ffd166;
-            margin-top: 15px;
-        }
-
-        #informacion {
-            padding: 10px;
-        }
-
-        #cancha {
-            width: 800px;
-            height: 500px;
-            max-width: 95vw;
-            margin: auto;
-            background: #6ab04c;
-            border: 5px solid white;
-            position: relative;
-            overflow: hidden;
-            touch-action: none;
-        }
-
-        .jugador {
-            width: 40px;
-            height: 40px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            will-change: left, top;
-        }
-
-        .aliado {
-            background: #3498db;
-        }
-
-        .enemigo {
-            background: #e74c3c;
-        }
-
-        .muerto {
-            background: #777 !important;
-            opacity: 0.7;
-        }
-
-        #mensajeJuego {
-            font-size: 22px;
-            font-weight: bold;
-            min-height: 32px;
-            color: #ffd166;
-        }
-
-        #meta {
-            position: absolute;
-            left: 740px;
-            top: 0;
-            width: 60px;
-            height: 100%;
-            background: repeating-conic-gradient(#fff 0% 25%, #222 0% 50%) 0 0 / 20px 20px;
-            opacity: 0.55;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
-            pointer-events: none;
-        }
-
-        .trampa {
-            width: 44px;
-            height: 44px;
-            position: absolute;
-            transform: translate(-50%, -50%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            opacity: 0.85;
-            pointer-events: none;
-        }
-
-        .trampa-lenta {
-            background: rgba(120, 72, 20, 0.75);
-            border: 2px dashed #f1c40f;
-        }
-
-        .trampa-hielo {
-            background: rgba(120, 220, 255, 0.55);
-            border: 2px dashed #ffffff;
-        }
-
-        .congelado {
-            box-shadow: 0 0 0 4px #aeefff, 0 0 18px 6px #7fdcff;
-            filter: brightness(1.4) saturate(0.5);
-        }
-
-        .lento {
-            box-shadow: 0 0 0 4px #f1c40f;
-        }
-
-        .llego {
-            box-shadow: 0 0 0 4px #2ecc71;
-        }
-
-        #panelEnemigo {
-            display: none;
-            margin: 10px auto;
-            width: 800px;
-            max-width: 95vw;
-        }
-
-        #panelEnemigo button {
-            width: 48%;
-            display: inline-block;
-            margin: 4px 1%;
-        }
-
-        #panelEnemigo button:disabled {
-            background: #555;
-            cursor: not-allowed;
-        }
-
-        #errorTrampa {
-            color: #ff8b8b;
-            min-height: 22px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Juego Online</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:#fff;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;text-align:center;overflow-x:hidden;
+background:radial-gradient(circle at 15% 10%,#2d3fa8 0,transparent 42%),radial-gradient(circle at 88% 85%,#8a1f62 0,transparent 42%),#0d1022}
+.panel{width:430px;max-width:92%;margin:6vh auto 24px;padding:28px;border-radius:24px;background:rgba(255,255,255,.07);
+backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.15);box-shadow:0 24px 70px rgba(0,0,0,.5)}
+#seleccionRol,#juego{display:none}
+h1{margin:0 0 6px;font-size:34px;background:linear-gradient(90deg,#7fd1ff,#ff7eb3);-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{margin:18px 0 4px;font-size:18px;color:#cfd6ff}
+.sub{margin:0 0 10px;color:#aab3e8;font-size:14px}
+input,button{width:100%;padding:13px;margin-top:10px;border:0;border-radius:12px;font-size:16px;font-family:inherit}
+input{background:rgba(255,255,255,.12);color:#fff;text-align:center;letter-spacing:4px;text-transform:uppercase;outline:2px solid transparent}
+input:focus{outline-color:#7fd1ff}input::placeholder{letter-spacing:1px;color:#9aa3d6}
+button{color:#fff;cursor:pointer;font-weight:bold;background:linear-gradient(135deg,#34d399,#10b981);box-shadow:0 6px 18px rgba(16,185,129,.35);transition:transform .12s,filter .12s}
+button:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.1)}
+hr{border:0;border-top:1px solid rgba(255,255,255,.15);margin:20px 0 0}
+#mensaje,#mensajeRol{color:#ffd166;min-height:20px;margin-top:14px}
+.rol{margin-top:14px;padding:16px;border-radius:16px;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s}
+.rol:hover{transform:scale(1.03);border-color:#fff}.rol h2{margin:4px 0}.rol p{margin:4px 0;font-size:14px;opacity:.9}
+.rol .ic{font-size:34px}
+#botonAliado{background:linear-gradient(135deg,#2563eb,#38bdf8)}
+#botonEnemigo{background:linear-gradient(135deg,#be123c,#fb7185)}
+#botonEnemigo.off{filter:grayscale(1);opacity:.5;cursor:not-allowed;transform:none}
+#estadoRoles{margin-top:18px;line-height:1.9;color:#cfd6ff}
+#rolElegido{margin-top:8px;font-weight:bold}
+#juego{position:fixed;inset:0;background:#13201a;touch-action:none}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;top:0;left:0;right:0;padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;font-size:14px;text-shadow:0 2px 4px #000}
+.chip{background:rgba(10,14,30,.6);padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.15)}
+#tiempoBox{font-size:20px;font-weight:bold}
+#mensajeJuego{position:absolute;top:96px;left:0;right:0;font-size:clamp(20px,3.4vw,32px);font-weight:bold;color:#ffd166;text-shadow:0 3px 8px #000;pointer-events:none;padding:0 12px}
+#panelEnemigo{display:none;position:absolute;bottom:16px;left:0;right:0;pointer-events:none}
+#panelEnemigo .fila{display:inline-flex;gap:8px;pointer-events:auto}
+#panelEnemigo button{width:auto;margin:0;padding:10px 14px;font-size:15px;background:rgba(20,24,48,.82);border:2px solid rgba(255,255,255,.25);box-shadow:none}
+#panelEnemigo button.sel{border-color:#ffd166;background:rgba(190,18,60,.85)}
+#panelEnemigo button:disabled{opacity:.45;cursor:not-allowed}
+#errorTrampa{color:#ff9a9a;min-height:22px;margin-top:6px;text-shadow:0 2px 4px #000;font-weight:bold}
+</style>
 </head>
-
 <body>
-    <div id="menu">
-        <h1>🎮 Juego Online</h1>
+<div id="menu" class="panel">
+  <h1>🎮 Juego Online</h1>
+  <p class="sub">3 Aliados contra 1 Enemigo. ¿Llegan a la meta?</p>
+  <button id="crearSala">✨ Crear sala</button>
+  <hr>
+  <h2>O unite a una</h2>
+  <input type="text" id="codigoInput" maxlength="5" placeholder="Código de sala">
+  <button id="unirseSala" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">🚪 Unirse</button>
+  <p id="mensaje"></p>
+</div>
 
-        <h2>Crear sala</h2>
-        <button id="crearSala">Crear sala</button>
+<div id="seleccionRol" class="panel">
+  <h1>⚔️ Elegí tu equipo</h1>
+  <p class="sub">Sala: <strong id="codigoSalaRol" style="letter-spacing:3px"></strong></p>
+  <div id="botonAliado" class="rol"><div class="ic">🏃</div><h2>ALIADO</h2><p>Corré hasta la META y esquivá trampas y muros.</p></div>
+  <div id="botonEnemigo" class="rol"><div class="ic">👹</div><h2>ENEMIGO</h2><p>Perseguilos desde atrás. Usá trampas y muros.</p></div>
+  <div id="estadoRoles">🏃 Aliados: <span id="cantidadAliados">0</span>/3 &nbsp;|&nbsp; 👹 Enemigo: <span id="estadoEnemigo">Disponible</span></div>
+  <div id="rolElegido">No elegiste un equipo.</div>
+  <p id="mensajeRol"></p>
+</div>
 
-        <hr>
-
-        <h2>Unirse</h2>
-        <input
-            type="text"
-            id="codigoInput"
-            maxlength="5"
-            placeholder="Código de sala"
-        >
-        <button id="unirseSala">Unirse a sala</button>
-
-        <p id="mensaje"></p>
+<div id="juego">
+  <canvas id="c"></canvas>
+  <div id="hud">
+    <div class="chip">Sala <strong id="codigoSala"></strong> · 👥 <span id="cantidadJugadores">0</span>/4</div>
+    <div class="chip" id="tiempoBox">⏱️ <span id="tiempo">--</span></div>
+  </div>
+  <div id="mensajeJuego"></div>
+  <div id="panelEnemigo">
+    <div class="fila">
+      <button id="btnLenta" data-p="lenta">🕸️ Lenta (1)</button>
+      <button id="btnHielo" data-p="hielo">🧊 Hielo (2)</button>
+      <button id="btnMuro" data-p="muro">🧱 Muro (3)</button>
     </div>
-
-    <div id="seleccionRol">
-        <h1>⚔️ Elegí tu equipo</h1>
-
-        <p>Sala: <strong id="codigoSalaRol"></strong></p>
-
-        <div id="botonAliado" class="rol">
-            🔵
-            <h2>ALIADO</h2>
-            <p>Tu objetivo es sobrevivir.</p>
-        </div>
-
-        <div id="botonEnemigo" class="rol">
-            🔴
-            <h2>ENEMIGO</h2>
-            <p>Tocá a los 3 aliados.</p>
-        </div>
-
-        <div id="estadoRoles">
-            🔵 Aliados: <span id="cantidadAliados">0</span>/3
-            <br>
-            🔴 Enemigo: <span id="estadoEnemigo">Disponible</span>
-        </div>
-
-        <div id="rolElegido">No elegiste un equipo.</div>
-        <p id="mensajeRol"></p>
-    </div>
-
-    <div id="juego">
-        <div id="informacion">
-            <h2>Sala: <span id="codigoSala"></span></h2>
-            <p>Jugadores: <span id="cantidadJugadores">0</span>/4</p>
-            <p>Usá W A S D para moverte.<br>🔵 Aliados: lleguen a la META 🏁 &nbsp;|&nbsp; 🔴 Enemigo: tecla 1 = trampa lenta, 2 = trampa de hielo.</p>
-            <p>⏱️ Tiempo: <span id="tiempo">--</span> s</p>
-            <div id="mensajeJuego"></div>
-        </div>
-
-        <div id="cancha">
-            <div id="meta">META</div>
-        </div>
-
-        <div id="panelEnemigo">
-            <button id="btnLenta">🕸️ Trampa lenta (1)</button>
-            <button id="btnHielo">🧊 Trampa de hielo (2)</button>
-            <div id="errorTrampa"></div>
-        </div>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io({ transports: ["websocket"] });
-
-        const menu = document.getElementById("menu");
-        const seleccionRol = document.getElementById("seleccionRol");
-        const juego = document.getElementById("juego");
-        const crearSala = document.getElementById("crearSala");
-        const unirseSala = document.getElementById("unirseSala");
-        const codigoInput = document.getElementById("codigoInput");
-        const codigoSalaRol = document.getElementById("codigoSalaRol");
-        const codigoSala = document.getElementById("codigoSala");
-        const cantidadJugadores = document.getElementById("cantidadJugadores");
-        const botonAliado = document.getElementById("botonAliado");
-        const botonEnemigo = document.getElementById("botonEnemigo");
-        const cantidadAliados = document.getElementById("cantidadAliados");
-        const estadoEnemigo = document.getElementById("estadoEnemigo");
-        const rolElegido = document.getElementById("rolElegido");
-        const mensaje = document.getElementById("mensaje");
-        const mensajeRol = document.getElementById("mensajeRol");
-        const mensajeJuego = document.getElementById("mensajeJuego");
-        const cancha = document.getElementById("cancha");
-
-        let miId = null;
-        let miRol = null;
-        let miJugador = { x: 100, y: 250 };
-        let partidaComenzada = false;
-        let teclas = {};
-        let jugadores = [];
-        let ultimoTiempo = 0;
-        let ultimoEnvio = 0;
-        let posicionLocalInicializada = false;
-
-        const elementosJugadores = new Map();
-        const elementosTrampas = new Map();
-
-        const tiempoEl = document.getElementById("tiempo");
-        const panelEnemigo = document.getElementById("panelEnemigo");
-        const btnLenta = document.getElementById("btnLenta");
-        const btnHielo = document.getElementById("btnHielo");
-        const errorTrampa = document.getElementById("errorTrampa");
-
-        let estoyMuerto = false;
-        let congeladoHasta = 0;   // performance.now() hasta el que estoy congelado
-        let lentoHasta = 0;
-        let cooldownLenta = 0;
-        let cooldownHielo = 0;
-
-        // ------------------------------------
-        // CONEXIÓN
-        // ------------------------------------
-
-        socket.on("connect", () => {
-            miId = socket.id;
-            console.log("Conectado:", miId);
-        });
-
-        socket.on("connect_error", error => {
-            mensaje.textContent = "No se pudo conectar al servidor.";
-            console.error(error);
-        });
-
-        // ------------------------------------
-        // SALAS
-        // ------------------------------------
-
-        crearSala.addEventListener("click", () => {
-            socket.emit("crearSala");
-        });
-
-        unirseSala.addEventListener("click", () => {
-            const codigo = codigoInput.value.trim().toUpperCase();
-
-            if (!codigo) {
-                mensaje.textContent = "Escribí un código.";
-                return;
-            }
-
-            socket.emit("unirseSala", codigo);
-        });
-
-        socket.on("salaCreada", datos => {
-            menu.style.display = "none";
-            seleccionRol.style.display = "block";
-            codigoSalaRol.textContent = datos.codigo;
-            codigoSala.textContent = datos.codigo;
-            mensaje.textContent = "";
-            mensajeRol.textContent = "";
-            rolElegido.textContent = "Elegí tu equipo.";
-        });
-
-        socket.on("errorSala", texto => {
-            mensaje.textContent = texto;
-        });
-
-        // ------------------------------------
-        // ELEGIR ROL
-        // ------------------------------------
-
-        botonAliado.addEventListener("click", () => {
-            socket.emit("elegirRol", "aliado");
-        });
-
-        botonEnemigo.addEventListener("click", () => {
-            if (!botonEnemigo.disabled) {
-                socket.emit("elegirRol", "enemigo");
-            }
-        });
-
-        socket.on("errorRol", texto => {
-            mensajeRol.textContent = texto;
-        });
-
-        socket.on("actualizarRoles", datos => {
-            cantidadAliados.textContent = datos.aliados;
-
-            if (datos.enemigo) {
-                estadoEnemigo.textContent = "Ocupado";
-                botonEnemigo.disabled = true;
-            } else {
-                estadoEnemigo.textContent = "Disponible";
-                botonEnemigo.disabled = false;
-            }
-
-            if (miRol) {
-                rolElegido.textContent =
-                    miRol === "aliado"
-                        ? "Elegiste ser ALIADO."
-                        : "Elegiste ser el ENEMIGO.";
-            }
-        });
-
-        // ------------------------------------
-        // CUENTA REGRESIVA
-        // ------------------------------------
-
-        socket.on("cuentaRegresiva", segundos => {
-            menu.style.display = "none";
-            seleccionRol.style.display = "none";
-            juego.style.display = "block";
-
-            partidaComenzada = false;
-            teclas = {};
-
-            mensajeJuego.textContent =
-                `La partida comienza en ${segundos}...`;
-
-            mensajeJuego.style.color = "#f7d879";
-        });
-
-        socket.on("cuentaRegresivaCancelada", () => {
-            partidaComenzada = false;
-            teclas = {};
-            juego.style.display = "none";
-            seleccionRol.style.display = "block";
-            mensajeRol.textContent =
-                "Se canceló la cuenta regresiva: falta un jugador o un rol.";
-        });
-
-        // ------------------------------------
-        // PARTIDA INICIADA
-        // ------------------------------------
-
-        socket.on("partidaIniciada", () => {
-            partidaComenzada = true;
-            posicionLocalInicializada = false;
-            ultimoEnvio = 0;
-            ultimoTiempo = 0;
-            teclas = {};
-
-            seleccionRol.style.display = "none";
-            juego.style.display = "block";
-
-            estoyMuerto = false;
-            congeladoHasta = 0;
-            lentoHasta = 0;
-            cooldownLenta = 0;
-            cooldownHielo = 0;
-            errorTrampa.textContent = "";
-            tiempoEl.textContent = "--";
-            mensajeJuego.textContent = "¡La partida comenzó!";
-            mensajeJuego.style.color = "#ffd166";
-        });
-
-        socket.on("partidaCancelada", texto => {
-            partidaComenzada = false;
-            teclas = {};
-            mensajeJuego.textContent = texto;
-        });
-
-        // ------------------------------------
-        // ACTUALIZAR JUGADORES
-        // ------------------------------------
-
-        socket.on("actualizarJugadores", lista => {
-            jugadores = lista;
-            cantidadJugadores.textContent = lista.length;
-
-            const yo = lista.find(j => j.id === miId);
-
-            if (yo) {
-                miRol = yo.rol;
-
-                if (!posicionLocalInicializada && partidaComenzada) {
-                    miJugador.x = yo.x;
-                    miJugador.y = yo.y;
-                    posicionLocalInicializada = true;
-                }
-            }
-
-            mostrarJugadores();
-        });
-
-        function mostrarJugadores() {
-            const idsActuales = new Set();
-
-            for (const jugador of jugadores) {
-                idsActuales.add(jugador.id);
-
-                let elemento = elementosJugadores.get(jugador.id);
-
-                if (!elemento) {
-                    elemento = document.createElement("div");
-                    elemento.className = "jugador";
-                    cancha.appendChild(elemento);
-                    elementosJugadores.set(jugador.id, elemento);
-
-                    elemento.dataset.visualX = jugador.x;
-                    elemento.dataset.visualY = jugador.y;
-                }
-
-                elemento.id = "jugador-" + jugador.id;
-                elemento.classList.toggle("aliado", jugador.rol === "aliado");
-                elemento.classList.toggle("enemigo", jugador.rol === "enemigo");
-                elemento.classList.toggle("muerto", jugador.muerto);
-
-                elemento.dataset.targetX = jugador.x;
-                elemento.dataset.targetY = jugador.y;
-
-                if (jugador.id === miId) {
-                    miRol = jugador.rol;
-                }
-            }
-
-            for (const [id, elemento] of elementosJugadores) {
-                if (!idsActuales.has(id)) {
-                    elemento.remove();
-                    elementosJugadores.delete(id);
-                }
-            }
-        }
-
-        // ------------------------------------
-        // ALIADO ELIMINADO
-        // ------------------------------------
-
-        socket.on("aliadoMuerto", datos => {
-            const elemento = elementosJugadores.get(datos.id);
-
-            if (elemento) {
-                elemento.classList.add("muerto");
-            }
-
-            if (datos.id === miId) {
-                teclas = {};
-                mensajeJuego.textContent = "💀 ¡Fuiste eliminado!";
-            }
-        });
-
-        socket.on("enemigoGana", () => {
-            partidaComenzada = false;
-            teclas = {};
-            mensajeJuego.textContent = "🔴 ¡EL ENEMIGO GANA!";
-        });
-
-        // ------------------------------------
-        // TECLADO
-        // ------------------------------------
-
-        document.addEventListener("keydown", evento => {
-            const tecla = evento.key.toLowerCase();
-
-            if (["w", "a", "s", "d"].includes(tecla)) {
-                evento.preventDefault();
-
-                if (partidaComenzada) {
-                    teclas[tecla] = true;
-                }
-            }
-        });
-
-        document.addEventListener("keyup", evento => {
-            const tecla = evento.key.toLowerCase();
-
-            if (["w", "a", "s", "d"].includes(tecla)) {
-                teclas[tecla] = false;
-            }
-        });
-
-        window.addEventListener("blur", () => {
-            teclas = {};
-        });
-
-        // ------------------------------------
-        // ENVIAR POSICIÓN AL SERVIDOR
-        // ------------------------------------
-
-        function enviarPosicion(ahora) {
-            if (ahora - ultimoEnvio < 40) return;
-
-            ultimoEnvio = ahora;
-
-            socket.emit("moverJugador", {
-                x: miJugador.x,
-                y: miJugador.y
-            });
-        }
-
-        // ------------------------------------
-        // MOVIMIENTO SUAVE
-        // ------------------------------------
-
-        function actualizarMovimiento(delta) {
-            if (!partidaComenzada) return;
-
-            const ahoraMs = performance.now();
-
-            if (estoyMuerto || ahoraMs < congeladoHasta) return;
-
-            const factor = ahoraMs < lentoHasta ? 0.4 : 1;
-            const velocidad = (miRol === "enemigo" ? 180 : 240) * factor;
-            const segundos = delta / 1000;
-
-            let dx = 0;
-            let dy = 0;
-
-            if (teclas["a"]) dx--;
-            if (teclas["d"]) dx++;
-            if (teclas["w"]) dy--;
-            if (teclas["s"]) dy++;
-
-            // Evita que el movimiento diagonal sea más rápido.
-            if (dx !== 0 && dy !== 0) {
-                dx *= Math.SQRT1_2;
-                dy *= Math.SQRT1_2;
-            }
-
-            miJugador.x += dx * velocidad * segundos;
-            miJugador.y += dy * velocidad * segundos;
-
-            miJugador.x = Math.max(20, Math.min(780, miJugador.x));
-            miJugador.y = Math.max(20, Math.min(480, miJugador.y));
-
-            if (dx !== 0 || dy !== 0) {
-                enviarPosicion(performance.now());
-            }
-        }
-
-        // ------------------------------------
-        // POSICIONES VISUALES DE OTROS JUGADORES
-        // ------------------------------------
-
-        function actualizarPosicionesVisuales() {
-            for (const jugador of jugadores) {
-                const elemento = elementosJugadores.get(jugador.id);
-                if (!elemento) continue;
-
-                if (jugador.id === miId) {
-                    elemento.dataset.visualX = miJugador.x;
-                    elemento.dataset.visualY = miJugador.y;
-                } else {
-                    const actualX = Number(elemento.dataset.visualX);
-                    const actualY = Number(elemento.dataset.visualY);
-                    const destinoX = Number(elemento.dataset.targetX);
-                    const destinoY = Number(elemento.dataset.targetY);
-
-                    // Interpolación para reducir saltos visuales.
-                    elemento.dataset.visualX = actualX + (destinoX - actualX) * 0.30;
-                    elemento.dataset.visualY = actualY + (destinoY - actualY) * 0.30;
-                }
-
-                elemento.style.left = `${elemento.dataset.visualX}px`;
-                elemento.style.top = `${elemento.dataset.visualY}px`;
-            }
-        }
-
-        // ------------------------------------
-        // BUCLE PRINCIPAL
-        // ------------------------------------
-
-        // ------------------------------------
-        // ESTADO EXTRA DE JUGADORES (congelado, lento, llegó, panel enemigo)
-        // ------------------------------------
-
-        socket.on("actualizarJugadores", lista => {
-            const yo = lista.find(j => j.id === miId);
-            if (yo) estoyMuerto = yo.muerto;
-
-            panelEnemigo.style.display =
-                partidaComenzada && miRol === "enemigo" ? "block" : "none";
-
-            for (const j of lista) {
-                const el = elementosJugadores.get(j.id);
-                if (!el) continue;
-                el.classList.toggle("congelado", !!j.congelado);
-                el.classList.toggle("lento", !!j.lento && !j.congelado);
-                el.classList.toggle("llego", !!j.llego);
-            }
-        });
-
-        socket.on("efecto", datos => {
-            const ahoraMs = performance.now();
-
-            if (datos.tipo === "hielo") {
-                congeladoHasta = ahoraMs + datos.duracion;
-                mensajeJuego.textContent = "🧊 ¡Estás congelado!";
-            } else {
-                lentoHasta = ahoraMs + datos.duracion;
-                mensajeJuego.textContent = "🕸️ ¡Estás lento!";
-            }
-        });
-
-        // El servidor corrige la posición si detectó un movimiento imposible.
-        socket.on("corregirPosicion", pos => {
-            miJugador.x = pos.x;
-            miJugador.y = pos.y;
-        });
-
-        socket.on("tiempoRestante", segundos => {
-            tiempoEl.textContent = segundos;
-        });
-
-        socket.on("aliadoLlego", datos => {
-            if (datos.id === miId) {
-                mensajeJuego.textContent = "🏁 ¡Llegaste a la meta! Ya estás a salvo.";
-            }
-        });
-
-        socket.on("aliadosGanan", () => {
-            partidaComenzada = false;
-            teclas = {};
-            panelEnemigo.style.display = "none";
-            mensajeJuego.textContent = "🔵 ¡LOS ALIADOS GANAN!";
-        });
-
-        socket.on("enemigoGana", datos => {
-            panelEnemigo.style.display = "none";
-
-            if (datos && datos.motivo === "tiempo") {
-                mensajeJuego.textContent = "🔴 ¡EL ENEMIGO GANA! Se acabó el tiempo.";
-            }
-        });
-
-        socket.on("volverASeleccion", () => {
-            partidaComenzada = false;
-            posicionLocalInicializada = false;
-            miRol = null;
-            teclas = {};
-            panelEnemigo.style.display = "none";
-            limpiarTrampas();
-            juego.style.display = "none";
-            seleccionRol.style.display = "block";
-            rolElegido.textContent = "Elegí tu equipo para la revancha.";
-            mensajeRol.textContent = "";
-        });
-
-        // ------------------------------------
-        // TRAMPAS
-        // ------------------------------------
-
-        function limpiarTrampas() {
-            for (const el of elementosTrampas.values()) el.remove();
-            elementosTrampas.clear();
-        }
-
-        socket.on("actualizarTrampas", lista => {
-            const ids = new Set();
-
-            for (const t of lista) {
-                ids.add(t.id);
-
-                let el = elementosTrampas.get(t.id);
-
-                if (!el) {
-                    el = document.createElement("div");
-                    el.className = `trampa trampa-${t.tipo}`;
-                    el.textContent = t.tipo === "hielo" ? "🧊" : "🕸️";
-                    el.style.left = `${t.x}px`;
-                    el.style.top = `${t.y}px`;
-                    cancha.appendChild(el);
-                    elementosTrampas.set(t.id, el);
-                }
-            }
-
-            for (const [id, el] of elementosTrampas) {
-                if (!ids.has(id)) {
-                    el.remove();
-                    elementosTrampas.delete(id);
-                }
-            }
-        });
-
-        function ponerTrampa(tipo) {
-            if (!partidaComenzada || miRol !== "enemigo") return;
-            errorTrampa.textContent = "";
-            socket.emit("ponerTrampa", tipo);
-        }
-
-        btnLenta.addEventListener("click", () => ponerTrampa("lenta"));
-        btnHielo.addEventListener("click", () => ponerTrampa("hielo"));
-
-        document.addEventListener("keydown", evento => {
-            if (evento.repeat) return;
-            if (evento.key === "1") ponerTrampa("lenta");
-            if (evento.key === "2") ponerTrampa("hielo");
-        });
-
-        socket.on("trampaCooldown", datos => {
-            const hasta = performance.now() + datos.ms;
-            if (datos.tipo === "lenta") cooldownLenta = hasta;
-            else cooldownHielo = hasta;
-        });
-
-        socket.on("errorTrampa", texto => {
-            errorTrampa.textContent = texto;
-        });
-
-        function actualizarBotonesTrampa() {
-            const ahoraMs = performance.now();
-
-            const l = Math.max(0, cooldownLenta - ahoraMs);
-            const h = Math.max(0, cooldownHielo - ahoraMs);
-
-            btnLenta.disabled = l > 0;
-            btnHielo.disabled = h > 0;
-
-            btnLenta.textContent =
-                l > 0 ? `🕸️ Lenta (${Math.ceil(l / 1000)}s)` : "🕸️ Trampa lenta (1)";
-            btnHielo.textContent =
-                h > 0 ? `🧊 Hielo (${Math.ceil(h / 1000)}s)` : "🧊 Trampa de hielo (2)";
-        }
-
-        setInterval(actualizarBotonesTrampa, 200);
-
-        function bucle(ahora) {
-            const delta = ultimoTiempo
-                ? Math.min(ahora - ultimoTiempo, 40)
-                : 16.67;
-
-            ultimoTiempo = ahora;
-
-            actualizarMovimiento(delta);
-            actualizarPosicionesVisuales();
-
-            requestAnimationFrame(bucle);
-        }
-
-        requestAnimationFrame(bucle);
-    </script>
+    <div id="errorTrampa"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const socket = io({ transports: ["websocket"] });
+const cv = $("c"), ctx = cv.getContext("2d");
+const menu = $("menu"), seleccionRol = $("seleccionRol"), juego = $("juego");
+const mensajeJuego = $("mensajeJuego"), errorTrampa = $("errorTrampa"), panelEnemigo = $("panelEnemigo");
+
+let M = { ancho: 6000, alto: 800, metaX: 5800, retraso: 4000, velAliado: 240, velEnemigo: 215, muroW: 30, muroH: 240, alcance: 650 };
+let miId = null, miRol = null, miJugador = { x: 260, y: 400 };
+let partidaComenzada = false, snap = true, estoyMuerto = false;
+let jugadores = [], trampas = [], muros = [], rafagas = [], decor = [];
+let teclas = {}, vis = new Map();
+let congeladoHasta = 0, lentoHasta = 0, salidaHasta = 0, ultimoEnvio = 0;
+let poderSel = null, cd = { lenta: 0, hielo: 0, muro: 0 };
+let cam = { x: 0, y: 0 }, Z = 1, mouse = { x: 0, y: 0 }, avisoHasta = 0, fijo = false;
+const COLORES = ["#4aa3ff", "#3ddc97", "#ffd166"];
+
+// ---------- utilidades ----------
+function aviso(t, ms = 2500, f = false) { mensajeJuego.textContent = t; avisoHasta = performance.now() + ms; fijo = f; }
+function resolverMuros(x, y, lista, r = 20) {
+  for (const m of lista) {
+    const cx = Math.max(m.x - m.w / 2, Math.min(x, m.x + m.w / 2));
+    const cy = Math.max(m.y - m.h / 2, Math.min(y, m.y + m.h / 2));
+    const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy);
+    if (d < r) { if (d > 0.0001) { x = cx + dx / d * r; y = cy + dy / d * r; } else x = x < m.x ? m.x - m.w / 2 - r : m.x + m.w / 2 + r; }
+  }
+  return { x, y };
+}
+function rng(seed) { return () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296; }
+function generarDecor() {
+  const r = rng(7); decor = [];
+  for (let i = 0; i < 900; i++) {
+    const x = r() * M.ancho, y = r() * M.alto;
+    if (x > M.metaX - 20) continue;
+    decor.push({ x, y, t: Math.floor(r() * 3), c: Math.floor(r() * 4), s: 0.6 + r() * 0.8 });
+  }
+}
+generarDecor();
+
+// ---------- menú y salas ----------
+$("crearSala").onclick = () => socket.emit("crearSala");
+$("unirseSala").onclick = () => {
+  const c = $("codigoInput").value.trim().toUpperCase();
+  if (!c) { $("mensaje").textContent = "Escribí un código."; return; }
+  socket.emit("unirseSala", c);
+};
+socket.on("connect", () => { miId = socket.id; });
+socket.on("connect_error", () => { $("mensaje").textContent = "No se pudo conectar al servidor."; });
+socket.on("errorSala", t => { $("mensaje").textContent = t; });
+socket.on("salaCreada", d => {
+  menu.style.display = "none"; seleccionRol.style.display = "block";
+  $("codigoSalaRol").textContent = d.codigo; $("codigoSala").textContent = d.codigo;
+  $("mensaje").textContent = ""; $("mensajeRol").textContent = ""; $("rolElegido").textContent = "Elegí tu equipo.";
+});
+$("botonAliado").onclick = () => socket.emit("elegirRol", "aliado");
+$("botonEnemigo").onclick = () => { if (!$("botonEnemigo").classList.contains("off")) socket.emit("elegirRol", "enemigo"); };
+socket.on("errorRol", t => { $("mensajeRol").textContent = t; });
+socket.on("actualizarRoles", d => {
+  $("cantidadAliados").textContent = d.aliados;
+  $("estadoEnemigo").textContent = d.enemigo ? "Ocupado" : "Disponible";
+  $("botonEnemigo").classList.toggle("off", d.enemigo && miRol !== "enemigo");
+  if (miRol) $("rolElegido").textContent = miRol === "aliado" ? "Sos ALIADO 🏃" : "Sos el ENEMIGO 👹";
+});
+
+// ---------- cuenta regresiva / inicio ----------
+socket.on("cuentaRegresiva", s => {
+  menu.style.display = "none"; seleccionRol.style.display = "none"; juego.style.display = "block";
+  partidaComenzada = false; teclas = {}; panelEnemigo.style.display = "none"; resize();
+  aviso(`La partida comienza en ${s}...`, 1500);
+});
+socket.on("cuentaRegresivaCancelada", () => {
+  partidaComenzada = false; teclas = {}; juego.style.display = "none"; seleccionRol.style.display = "block";
+  $("mensajeRol").textContent = "Se canceló la cuenta regresiva: falta un jugador o un rol.";
+});
+socket.on("partidaIniciada", d => {
+  Object.assign(M, d); generarDecor();
+  partidaComenzada = true; snap = true; estoyMuerto = false; fijo = false;
+  teclas = {}; congeladoHasta = lentoHasta = 0; cd = { lenta: 0, hielo: 0, muro: 0 };
+  salidaHasta = performance.now() + (d.retraso || 0); poderSel = null; errorTrampa.textContent = "";
+  trampas = []; muros = []; rafagas = []; $("tiempo").textContent = "--";
+  seleccionRol.style.display = "none"; juego.style.display = "block"; resize();
+});
+socket.on("partidaCancelada", t => aviso(t, 3000));
+socket.on("volverASeleccion", () => {
+  partidaComenzada = false; miRol = null; teclas = {}; trampas = []; muros = []; poderSel = null;
+  panelEnemigo.style.display = "none"; juego.style.display = "none"; seleccionRol.style.display = "block";
+  $("rolElegido").textContent = "Elegí tu equipo para la revancha."; $("mensajeRol").textContent = "";
+});
+
+// ---------- estado del juego ----------
+socket.on("actualizarJugadores", lista => {
+  jugadores = lista; $("cantidadJugadores").textContent = lista.length;
+  const aliados = lista.filter(j => j.rol === "aliado").sort((a, b) => (a.id < b.id ? -1 : 1));
+  for (const j of lista) {
+    let v = vis.get(j.id);
+    if (!v) { v = { x: j.x, y: j.y, dir: 0, ci: 0 }; vis.set(j.id, v); }
+    v.ci = Math.max(0, aliados.findIndex(a => a.id === j.id)); v.tx = j.x; v.ty = j.y;
+    if (snap) { v.x = j.x; v.y = j.y; }
+  }
+  for (const id of [...vis.keys()]) if (!lista.some(j => j.id === id)) vis.delete(id);
+  const yo = lista.find(j => j.id === miId);
+  if (yo) {
+    miRol = yo.rol; estoyMuerto = yo.muerto;
+    if (snap && partidaComenzada) { miJugador.x = yo.x; miJugador.y = yo.y; cam.x = yo.x - 9999; snap = false; cam.snap = true; }
+  }
+  panelEnemigo.style.display = partidaComenzada && miRol === "enemigo" ? "block" : "none";
+});
+socket.on("actualizarTrampas", l => { trampas = l; });
+socket.on("actualizarMuros", l => { muros = l; });
+socket.on("trampaActivada", d => rafagas.push({ x: d.x, y: d.y, t: performance.now(), c: d.tipo === "hielo" ? "#aeefff" : "#f1c40f" }));
+socket.on("efecto", d => {
+  const n = performance.now();
+  if (d.tipo === "hielo") { congeladoHasta = n + d.duracion; aviso("🧊 ¡Estás congelado!", d.duracion); }
+  else { lentoHasta = n + d.duracion; aviso("🕸️ ¡Estás lento!", d.duracion); }
+});
+socket.on("corregirPosicion", p => { miJugador.x = p.x; miJugador.y = p.y; });
+socket.on("tiempoRestante", s => { $("tiempo").textContent = s + " s"; });
+socket.on("aliadoMuerto", d => { if (d.id === miId) { teclas = {}; aviso("💀 ¡Te atraparon!", 3000); } });
+socket.on("aliadoLlego", d => { if (d.id === miId) aviso("🏁 ¡Llegaste a la meta!", 3000); });
+socket.on("aliadosGanan", () => { partidaComenzada = false; teclas = {}; panelEnemigo.style.display = "none"; aviso("🏆 ¡LOS ALIADOS GANAN!", 1e9, true); });
+socket.on("enemigoGana", d => { partidaComenzada = false; teclas = {}; panelEnemigo.style.display = "none"; aviso(d && d.motivo === "tiempo" ? "👹 ¡EL ENEMIGO GANA! Se acabó el tiempo." : "👹 ¡EL ENEMIGO GANA!", 1e9, true); });
+socket.on("errorTrampa", t => { errorTrampa.textContent = t; setTimeout(() => { if (errorTrampa.textContent === t) errorTrampa.textContent = ""; }, 2500); });
+socket.on("trampaCooldown", d => { cd[d.tipo] = performance.now() + d.ms; });
+
+// ---------- poderes del enemigo ----------
+function elegirPoder(p) { poderSel = poderSel === p ? null : p; errorTrampa.textContent = ""; }
+document.querySelectorAll("#panelEnemigo button").forEach(b => b.onclick = () => elegirPoder(b.dataset.p));
+function mundoDesde(px, py) { return { x: px / Z + cam.x, y: py / Z + cam.y }; }
+cv.addEventListener("pointermove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+cv.addEventListener("pointerdown", e => {
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  if (!partidaComenzada || miRol !== "enemigo" || !poderSel) return;
+  const w = mundoDesde(e.clientX, e.clientY);
+  socket.emit("ponerTrampa", { tipo: poderSel, x: w.x, y: w.y });
+});
+setInterval(() => {
+  const n = performance.now(), t = { lenta: "🕸️ Lenta (1)", hielo: "🧊 Hielo (2)", muro: "🧱 Muro (3)" };
+  for (const k of ["lenta", "hielo", "muro"]) {
+    const b = $("btn" + k[0].toUpperCase() + k.slice(1)), r = Math.max(0, cd[k] - n);
+    b.disabled = r > 0; b.textContent = r > 0 ? t[k].replace(/\(\d\)/, `(${Math.ceil(r / 1000)}s)`) : t[k];
+    b.classList.toggle("sel", poderSel === k);
+  }
+}, 150);
+
+// ---------- teclado ----------
+document.addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  if (["w", "a", "s", "d"].includes(k)) { e.preventDefault(); if (partidaComenzada) teclas[k] = true; }
+  if (e.repeat || !partidaComenzada || miRol !== "enemigo") return;
+  if (k === "1") elegirPoder("lenta"); if (k === "2") elegirPoder("hielo"); if (k === "3") elegirPoder("muro");
+  if (k === "escape") poderSel = null;
+});
+document.addEventListener("keyup", e => { const k = e.key.toLowerCase(); if (["w", "a", "s", "d"].includes(k)) teclas[k] = false; });
+window.addEventListener("blur", () => { teclas = {}; });
+
+// ---------- movimiento ----------
+function mover(dt) {
+  const n = performance.now();
+  if (!partidaComenzada || estoyMuerto || n < congeladoHasta) return;
+  if (miRol === "enemigo" && n < salidaHasta) return;
+  const f = n < lentoHasta ? 0.4 : 1, vel = (miRol === "enemigo" ? M.velEnemigo : M.velAliado) * f;
+  let dx = (teclas.d ? 1 : 0) - (teclas.a ? 1 : 0), dy = (teclas.s ? 1 : 0) - (teclas.w ? 1 : 0);
+  if (!dx && !dy) return;
+  if (dx && dy) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; }
+  let x = Math.max(20, Math.min(M.ancho - 20, miJugador.x + dx * vel * dt));
+  let y = Math.max(20, Math.min(M.alto - 20, miJugador.y + dy * vel * dt));
+  const p = resolverMuros(x, y, muros);
+  miJugador.x = p.x; miJugador.y = p.y;
+  if (n - ultimoEnvio >= 40) { ultimoEnvio = n; socket.emit("moverJugador", { x: miJugador.x, y: miJugador.y }); }
+}
+function interpolar(dt) {
+  const k = 1 - Math.exp(-dt * 18);
+  for (const [id, v] of vis) {
+    const px = v.x, py = v.y;
+    if (id === miId) { v.x = miJugador.x; v.y = miJugador.y; }
+    else if (v.tx !== undefined) { v.x += (v.tx - v.x) * k; v.y += (v.ty - v.y) * k; }
+    if (Math.hypot(v.x - px, v.y - py) > 0.3) v.dir = Math.atan2(v.y - py, v.x - px);
+  }
+}
+
+// ---------- dibujo ----------
+function resize() {
+  const d = window.devicePixelRatio || 1;
+  cv.width = innerWidth * d; cv.height = innerHeight * d;
+}
+window.addEventListener("resize", resize); resize();
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+function dibujarSuelo(vw, vh) {
+  ctx.fillStyle = "#13201a"; ctx.fillRect(cam.x - 10, cam.y - 10, vw + 20, vh + 20);
+  const g = ctx.createLinearGradient(0, 0, 0, M.alto); g.addColorStop(0, "#5fb04b"); g.addColorStop(1, "#4a9a3f");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, M.ancho, M.alto);
+  for (let sx = Math.floor(cam.x / 240) * 240; sx < cam.x + vw; sx += 240) {
+    if (((sx / 240) & 1) && sx >= 0 && sx < M.ancho) { ctx.fillStyle = "rgba(255,255,255,.05)"; ctx.fillRect(sx, 0, 240, M.alto); }
+  }
+  ctx.fillStyle = "rgba(120,90,50,.55)"; ctx.fillRect(0, 0, 440, M.alto);
+  ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.font = "bold 28px Trebuchet MS"; ctx.textAlign = "center"; ctx.fillText("SALIDA ➜", 210, 60);
+  // camino central
+  ctx.fillStyle = "rgba(170,140,90,.28)"; ctx.fillRect(440, M.alto / 2 - 90, M.metaX - 440, 180);
+  for (const d of decor) {
+    if (d.x < cam.x - 20 || d.x > cam.x + vw + 20 || d.y < cam.y - 20 || d.y > cam.y + vh + 20) continue;
+    if (d.t === 0) { ctx.fillStyle = ["#fff6a8", "#ff9ec4", "#c9a7ff", "#ffffff"][d.c]; ctx.beginPath(); ctx.arc(d.x, d.y, 3 * d.s, 0, 7); ctx.fill(); }
+    else if (d.t === 1) { ctx.strokeStyle = "rgba(30,90,30,.55)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(d.x - 4, d.y + 5); ctx.lineTo(d.x - 1, d.y - 5 * d.s); ctx.moveTo(d.x + 4, d.y + 5); ctx.lineTo(d.x + 2, d.y - 6 * d.s); ctx.stroke(); }
+    else { ctx.fillStyle = "rgba(90,95,100,.6)"; ctx.beginPath(); ctx.ellipse(d.x, d.y, 9 * d.s, 6 * d.s, 0, 0, 7); ctx.fill(); }
+  }
+  // meta
+  if (cam.x + vw > M.metaX) {
+    for (let y = 0; y < M.alto; y += 40) for (let x = M.metaX; x < M.ancho; x += 40)
+      { ctx.fillStyle = ((((x - M.metaX) / 40) + y / 40) & 1) ? "#ffffff" : "#222"; ctx.fillRect(x, y, 40, 40); }
+    ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(M.metaX, M.alto / 2 - 30, M.ancho - M.metaX, 60);
+    ctx.fillStyle = "#ffd166"; ctx.font = "bold 40px Trebuchet MS"; ctx.fillText("🏁 META 🏁", (M.metaX + M.ancho) / 2, M.alto / 2 + 14);
+  }
+  // borde
+  ctx.strokeStyle = "#7a5230"; ctx.lineWidth = 10; ctx.strokeRect(0, 0, M.ancho, M.alto);
+  ctx.fillStyle = "#9b6a3d";
+  for (let x = Math.floor(cam.x / 100) * 100; x < cam.x + vw; x += 100) { if (x < 0 || x > M.ancho) continue; ctx.fillRect(x - 5, -8, 10, 18); ctx.fillRect(x - 5, M.alto - 10, 10, 18); }
+}
+function dibujarTrampa(t, n) {
+  const p = 1 + 0.06 * Math.sin(n / 200);
+  ctx.save(); ctx.translate(t.x, t.y); ctx.scale(p, p);
+  ctx.beginPath(); ctx.arc(0, 0, 32, 0, 7);
+  if (t.tipo === "hielo") { ctx.fillStyle = "rgba(160,225,255,.55)"; ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.stroke();
+    ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 24, Math.sin(a) * 24); } ctx.stroke(); }
+  else { ctx.fillStyle = "rgba(110,70,25,.7)"; ctx.fill(); ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3; ctx.setLineDash([6, 5]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 26, Math.sin(a) * 26); }
+    for (const r of [10, 18]) { ctx.moveTo(r, 0); ctx.arc(0, 0, r, 0, 7); } ctx.stroke(); }
+  ctx.restore();
+}
+function dibujarMuro(m) {
+  const x = m.x - m.w / 2, y = m.y - m.h / 2;
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.fillRect(x + 6, y + 8, m.w, m.h);
+  ctx.fillStyle = "#a8643d"; ctx.fillRect(x, y, m.w, m.h);
+  ctx.strokeStyle = "rgba(60,28,12,.65)"; ctx.lineWidth = 2; ctx.beginPath();
+  for (let r = 0; r * 24 <= m.h; r++) { ctx.moveTo(x, y + r * 24); ctx.lineTo(x + m.w, y + r * 24); ctx.moveTo(x + (r & 1 ? m.w * .3 : m.w * .7), y + r * 24); ctx.lineTo(x + (r & 1 ? m.w * .3 : m.w * .7), y + r * 24 + 24); }
+  ctx.stroke(); ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(x, y, m.w, 5);
+  ctx.strokeStyle = "#4a2410"; ctx.lineWidth = 3; ctx.strokeRect(x, y, m.w, m.h);
+}
+function dibujarJugador(p, v, n) {
+  const r = 20, esYo = p.id === miId, enemigo = p.rol === "enemigo";
+  ctx.save(); ctx.translate(v.x, v.y);
+  ctx.fillStyle = "rgba(0,0,0,.3)"; ctx.beginPath(); ctx.ellipse(0, r * .85, r * .95, r * .4, 0, 0, 7); ctx.fill();
+  ctx.globalAlpha = p.muerto ? .55 : 1;
+  const col = p.muerto ? "#8a8f98" : enemigo ? "#ff4757" : COLORES[v.ci % 3];
+  if (enemigo && !p.muerto) { ctx.fillStyle = "#7a0f1c"; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + n / 1400; ctx.beginPath(); ctx.moveTo(Math.cos(a - .22) * r * .9, Math.sin(a - .22) * r * .9); ctx.lineTo(Math.cos(a) * (r + 9), Math.sin(a) * (r + 9)); ctx.lineTo(Math.cos(a + .22) * r * .9, Math.sin(a + .22) * r * .9); ctx.fill(); } }
+  const g = ctx.createRadialGradient(-6, -8, 2, 0, 0, r + 2); g.addColorStop(0, "#fff"); g.addColorStop(.25, col); g.addColorStop(1, col);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.lineWidth = 3; ctx.stroke();
+  const fx = Math.cos(v.dir), fy = Math.sin(v.dir);
+  for (const s of [-1, 1]) {
+    const ex = fx * 6 - fy * 6 * s, ey = fy * 6 + fx * 6 * s - 2;
+    if (p.muerto) { ctx.strokeStyle = "#222"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ex - 3, ey - 3); ctx.lineTo(ex + 3, ey + 3); ctx.moveTo(ex + 3, ey - 3); ctx.lineTo(ex - 3, ey + 3); ctx.stroke(); }
+    else { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex, ey, 5, 0, 7); ctx.fill(); ctx.fillStyle = enemigo ? "#900" : "#111"; ctx.beginPath(); ctx.arc(ex + fx * 2, ey + fy * 2, 2.5, 0, 7); ctx.fill(); }
+  }
+  if (p.congelado) { ctx.fillStyle = "rgba(170,235,255,.6)"; ctx.beginPath(); ctx.arc(0, 0, r + 3, 0, 7); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.stroke(); }
+  if (p.lento && !p.congelado) { ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3; ctx.setLineDash([5, 5]); ctx.lineDashOffset = -n / 60; ctx.beginPath(); ctx.arc(0, 0, r + 6, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  if (p.llego) { ctx.strokeStyle = "#2ecc71"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, r + 6, 0, 7); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  if (esYo) { const b = Math.sin(n / 200) * 3; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(0, -r - 8 + b); ctx.lineTo(-7, -r - 20 + b); ctx.lineTo(7, -r - 20 + b); ctx.fill(); }
+  if (enemigo) { ctx.fillStyle = "#fff"; ctx.font = "bold 12px Trebuchet MS"; ctx.textAlign = "center"; ctx.strokeStyle = "#000"; ctx.lineWidth = 3; ctx.strokeText("ENEMIGO", 0, -r - 14); ctx.fillText("ENEMIGO", 0, -r - 14); }
+  ctx.restore();
+}
+function dibujarFantasma(n) {
+  if (!partidaComenzada || miRol !== "enemigo" || !poderSel || n < salidaHasta) return;
+  const w = mundoDesde(mouse.x, mouse.y), ok = Math.hypot(w.x - miJugador.x, w.y - miJugador.y) <= M.alcance;
+  ctx.save(); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 2; ctx.setLineDash([10, 10]);
+  ctx.beginPath(); ctx.arc(miJugador.x, miJugador.y, M.alcance, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.globalAlpha = .6; ctx.fillStyle = ok ? "#ffffff" : "#ff3b3b";
+  if (poderSel === "muro") ctx.fillRect(w.x - M.muroW / 2, w.y - M.muroH / 2, M.muroW, M.muroH);
+  else { ctx.beginPath(); ctx.arc(w.x, w.y, 32, 0, 7); ctx.fill(); }
+  ctx.restore();
+}
+function dibujarMinimapa(W) {
+  const mw = Math.min(560, W * .7), mx = (W - mw) / 2, my = 58;
+  ctx.fillStyle = "rgba(10,14,30,.6)"; rr(mx - 8, my - 10, mw + 16, 26, 13); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.2)"; ctx.fillRect(mx, my + 1, mw, 4);
+  ctx.fillStyle = "#ffd166"; ctx.font = "14px Trebuchet MS"; ctx.textAlign = "center"; ctx.fillText("🏁", mx + mw + 2, my + 9);
+  for (const p of jugadores) {
+    const v = vis.get(p.id); if (!v) continue;
+    ctx.fillStyle = p.muerto ? "#777" : p.rol === "enemigo" ? "#ff4757" : COLORES[v.ci % 3];
+    ctx.beginPath(); ctx.arc(mx + Math.min(1, v.x / M.ancho) * mw, my + 3, p.id === miId ? 7 : 5, 0, 7); ctx.fill();
+    if (p.id === miId) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke(); }
+  }
+}
+function dibujar(n) {
+  const d = window.devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+  Z = Math.max(.55, Math.min(1.25, H / 760));
+  const vw = W / Z, vh = H / Z;
+  let foco = miJugador;
+  if (estoyMuerto) { const a = jugadores.find(j => j.rol === "aliado" && !j.muerto && vis.get(j.id)); if (a) foco = vis.get(a.id); }
+  const tx = M.ancho <= vw ? (M.ancho - vw) / 2 : Math.max(0, Math.min(M.ancho - vw, foco.x - vw / 2));
+  const ty = M.alto <= vh ? (M.alto - vh) / 2 : Math.max(0, Math.min(M.alto - vh, foco.y - vh / 2));
+  if (cam.snap || cam.x < -5000) { cam.x = tx; cam.y = ty; cam.snap = false; }
+  else { cam.x += (tx - cam.x) * .15; cam.y += (ty - cam.y) * .15; }
+  ctx.setTransform(d * Z, 0, 0, d * Z, -cam.x * d * Z, -cam.y * d * Z);
+  dibujarSuelo(vw, vh);
+  for (const t of trampas) dibujarTrampa(t, n);
+  for (const m of muros) dibujarMuro(m);
+  rafagas = rafagas.filter(r => n - r.t < 600);
+  for (const r of rafagas) { const k = (n - r.t) / 600; ctx.strokeStyle = r.c; ctx.globalAlpha = 1 - k; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(r.x, r.y, 20 + k * 80, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
+  const orden = [...jugadores].sort((a, b) => (b.muerto ? 1 : 0) - (a.muerto ? 1 : 0) || (vis.get(a.id)?.y ?? 0) - (vis.get(b.id)?.y ?? 0));
+  for (const p of orden) { const v = vis.get(p.id); if (v) dibujarJugador(p, v, n); }
+  dibujarFantasma(n);
+  ctx.setTransform(d, 0, 0, d, 0, 0); dibujarMinimapa(W);
+}
+
+// ---------- bucle ----------
+let ultimo = 0;
+function bucle(n) {
+  const dt = ultimo ? Math.min((n - ultimo) / 1000, .05) : .016; ultimo = n;
+  mover(dt); interpolar(dt);
+  if (juego.style.display === "block") {
+    dibujar(n);
+    if (!fijo && n > avisoHasta) {
+      if (partidaComenzada && n < salidaHasta) { const s = Math.ceil((salidaHasta - n) / 1000); mensajeJuego.textContent = miRol === "enemigo" ? `⏳ Salís en ${s}...` : `🏃 ¡Corran! El enemigo sale en ${s}`; }
+      else mensajeJuego.textContent = "";
+    }
+  }
+  requestAnimationFrame(bucle);
+}
+requestAnimationFrame(bucle);
+</script>
 </body>
 </html>

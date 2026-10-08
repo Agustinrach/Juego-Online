@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -137,6 +136,82 @@
             min-height: 32px;
             color: #ffd166;
         }
+
+        #meta {
+            position: absolute;
+            left: 740px;
+            top: 0;
+            width: 60px;
+            height: 100%;
+            background: repeating-conic-gradient(#fff 0% 25%, #222 0% 50%) 0 0 / 20px 20px;
+            opacity: 0.55;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .trampa {
+            width: 44px;
+            height: 44px;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .trampa-lenta {
+            background: rgba(120, 72, 20, 0.75);
+            border: 2px dashed #f1c40f;
+        }
+
+        .trampa-hielo {
+            background: rgba(120, 220, 255, 0.55);
+            border: 2px dashed #ffffff;
+        }
+
+        .congelado {
+            box-shadow: 0 0 0 4px #aeefff, 0 0 18px 6px #7fdcff;
+            filter: brightness(1.4) saturate(0.5);
+        }
+
+        .lento {
+            box-shadow: 0 0 0 4px #f1c40f;
+        }
+
+        .llego {
+            box-shadow: 0 0 0 4px #2ecc71;
+        }
+
+        #panelEnemigo {
+            display: none;
+            margin: 10px auto;
+            width: 800px;
+            max-width: 95vw;
+        }
+
+        #panelEnemigo button {
+            width: 48%;
+            display: inline-block;
+            margin: 4px 1%;
+        }
+
+        #panelEnemigo button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        #errorTrampa {
+            color: #ff8b8b;
+            min-height: 22px;
+        }
     </style>
 </head>
 
@@ -192,16 +267,25 @@
         <div id="informacion">
             <h2>Sala: <span id="codigoSala"></span></h2>
             <p>Jugadores: <span id="cantidadJugadores">0</span>/4</p>
-            <p>Usá W A S D para moverte.</p>
+            <p>Usá W A S D para moverte.<br>🔵 Aliados: lleguen a la META 🏁 &nbsp;|&nbsp; 🔴 Enemigo: tecla 1 = trampa lenta, 2 = trampa de hielo.</p>
+            <p>⏱️ Tiempo: <span id="tiempo">--</span> s</p>
             <div id="mensajeJuego"></div>
         </div>
 
-        <div id="cancha"></div>
+        <div id="cancha">
+            <div id="meta">META</div>
+        </div>
+
+        <div id="panelEnemigo">
+            <button id="btnLenta">🕸️ Trampa lenta (1)</button>
+            <button id="btnHielo">🧊 Trampa de hielo (2)</button>
+            <div id="errorTrampa"></div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        const socket = io({ transports: ["websocket"] });
 
         const menu = document.getElementById("menu");
         const seleccionRol = document.getElementById("seleccionRol");
@@ -233,6 +317,19 @@
         let posicionLocalInicializada = false;
 
         const elementosJugadores = new Map();
+        const elementosTrampas = new Map();
+
+        const tiempoEl = document.getElementById("tiempo");
+        const panelEnemigo = document.getElementById("panelEnemigo");
+        const btnLenta = document.getElementById("btnLenta");
+        const btnHielo = document.getElementById("btnHielo");
+        const errorTrampa = document.getElementById("errorTrampa");
+
+        let estoyMuerto = false;
+        let congeladoHasta = 0;   // performance.now() hasta el que estoy congelado
+        let lentoHasta = 0;
+        let cooldownLenta = 0;
+        let cooldownHielo = 0;
 
         // ------------------------------------
         // CONEXIÓN
@@ -359,6 +456,13 @@
             seleccionRol.style.display = "none";
             juego.style.display = "block";
 
+            estoyMuerto = false;
+            congeladoHasta = 0;
+            lentoHasta = 0;
+            cooldownLenta = 0;
+            cooldownHielo = 0;
+            errorTrampa.textContent = "";
+            tiempoEl.textContent = "--";
             mensajeJuego.textContent = "¡La partida comenzó!";
             mensajeJuego.style.color = "#ffd166";
         });
@@ -504,7 +608,12 @@
         function actualizarMovimiento(delta) {
             if (!partidaComenzada) return;
 
-            const velocidad = miRol === "enemigo" ? 180 : 240;
+            const ahoraMs = performance.now();
+
+            if (estoyMuerto || ahoraMs < congeladoHasta) return;
+
+            const factor = ahoraMs < lentoHasta ? 0.4 : 1;
+            const velocidad = (miRol === "enemigo" ? 180 : 240) * factor;
             const segundos = delta / 1000;
 
             let dx = 0;
@@ -563,6 +672,160 @@
         // ------------------------------------
         // BUCLE PRINCIPAL
         // ------------------------------------
+
+        // ------------------------------------
+        // ESTADO EXTRA DE JUGADORES (congelado, lento, llegó, panel enemigo)
+        // ------------------------------------
+
+        socket.on("actualizarJugadores", lista => {
+            const yo = lista.find(j => j.id === miId);
+            if (yo) estoyMuerto = yo.muerto;
+
+            panelEnemigo.style.display =
+                partidaComenzada && miRol === "enemigo" ? "block" : "none";
+
+            for (const j of lista) {
+                const el = elementosJugadores.get(j.id);
+                if (!el) continue;
+                el.classList.toggle("congelado", !!j.congelado);
+                el.classList.toggle("lento", !!j.lento && !j.congelado);
+                el.classList.toggle("llego", !!j.llego);
+            }
+        });
+
+        socket.on("efecto", datos => {
+            const ahoraMs = performance.now();
+
+            if (datos.tipo === "hielo") {
+                congeladoHasta = ahoraMs + datos.duracion;
+                mensajeJuego.textContent = "🧊 ¡Estás congelado!";
+            } else {
+                lentoHasta = ahoraMs + datos.duracion;
+                mensajeJuego.textContent = "🕸️ ¡Estás lento!";
+            }
+        });
+
+        // El servidor corrige la posición si detectó un movimiento imposible.
+        socket.on("corregirPosicion", pos => {
+            miJugador.x = pos.x;
+            miJugador.y = pos.y;
+        });
+
+        socket.on("tiempoRestante", segundos => {
+            tiempoEl.textContent = segundos;
+        });
+
+        socket.on("aliadoLlego", datos => {
+            if (datos.id === miId) {
+                mensajeJuego.textContent = "🏁 ¡Llegaste a la meta! Ya estás a salvo.";
+            }
+        });
+
+        socket.on("aliadosGanan", () => {
+            partidaComenzada = false;
+            teclas = {};
+            panelEnemigo.style.display = "none";
+            mensajeJuego.textContent = "🔵 ¡LOS ALIADOS GANAN!";
+        });
+
+        socket.on("enemigoGana", datos => {
+            panelEnemigo.style.display = "none";
+
+            if (datos && datos.motivo === "tiempo") {
+                mensajeJuego.textContent = "🔴 ¡EL ENEMIGO GANA! Se acabó el tiempo.";
+            }
+        });
+
+        socket.on("volverASeleccion", () => {
+            partidaComenzada = false;
+            posicionLocalInicializada = false;
+            miRol = null;
+            teclas = {};
+            panelEnemigo.style.display = "none";
+            limpiarTrampas();
+            juego.style.display = "none";
+            seleccionRol.style.display = "block";
+            rolElegido.textContent = "Elegí tu equipo para la revancha.";
+            mensajeRol.textContent = "";
+        });
+
+        // ------------------------------------
+        // TRAMPAS
+        // ------------------------------------
+
+        function limpiarTrampas() {
+            for (const el of elementosTrampas.values()) el.remove();
+            elementosTrampas.clear();
+        }
+
+        socket.on("actualizarTrampas", lista => {
+            const ids = new Set();
+
+            for (const t of lista) {
+                ids.add(t.id);
+
+                let el = elementosTrampas.get(t.id);
+
+                if (!el) {
+                    el = document.createElement("div");
+                    el.className = `trampa trampa-${t.tipo}`;
+                    el.textContent = t.tipo === "hielo" ? "🧊" : "🕸️";
+                    el.style.left = `${t.x}px`;
+                    el.style.top = `${t.y}px`;
+                    cancha.appendChild(el);
+                    elementosTrampas.set(t.id, el);
+                }
+            }
+
+            for (const [id, el] of elementosTrampas) {
+                if (!ids.has(id)) {
+                    el.remove();
+                    elementosTrampas.delete(id);
+                }
+            }
+        });
+
+        function ponerTrampa(tipo) {
+            if (!partidaComenzada || miRol !== "enemigo") return;
+            errorTrampa.textContent = "";
+            socket.emit("ponerTrampa", tipo);
+        }
+
+        btnLenta.addEventListener("click", () => ponerTrampa("lenta"));
+        btnHielo.addEventListener("click", () => ponerTrampa("hielo"));
+
+        document.addEventListener("keydown", evento => {
+            if (evento.repeat) return;
+            if (evento.key === "1") ponerTrampa("lenta");
+            if (evento.key === "2") ponerTrampa("hielo");
+        });
+
+        socket.on("trampaCooldown", datos => {
+            const hasta = performance.now() + datos.ms;
+            if (datos.tipo === "lenta") cooldownLenta = hasta;
+            else cooldownHielo = hasta;
+        });
+
+        socket.on("errorTrampa", texto => {
+            errorTrampa.textContent = texto;
+        });
+
+        function actualizarBotonesTrampa() {
+            const ahoraMs = performance.now();
+
+            const l = Math.max(0, cooldownLenta - ahoraMs);
+            const h = Math.max(0, cooldownHielo - ahoraMs);
+
+            btnLenta.disabled = l > 0;
+            btnHielo.disabled = h > 0;
+
+            btnLenta.textContent =
+                l > 0 ? `🕸️ Lenta (${Math.ceil(l / 1000)}s)` : "🕸️ Trampa lenta (1)";
+            btnHielo.textContent =
+                h > 0 ? `🧊 Hielo (${Math.ceil(h / 1000)}s)` : "🧊 Trampa de hielo (2)";
+        }
+
+        setInterval(actualizarBotonesTrampa, 200);
 
         function bucle(ahora) {
             const delta = ultimoTiempo

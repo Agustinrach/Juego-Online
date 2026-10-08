@@ -11,19 +11,28 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const salas = new Map();
 
-const ANCHO_CANCHA = 800;
-const ALTO_CANCHA = 500;
+const ANCHO_CANCHA = 6000;
+const ALTO_CANCHA = 800;
 const RADIO_CONTACTO = 40;
 const DURACION_CUENTA = 5;
 
 // --- Reglas de la carrera ---
-const META_X = 740;                 // los aliados llegan a la meta con x >= META_X
-const TIEMPO_PARTIDA = 120;         // segundos; si se acaba, gana el enemigo
+const META_X = 5800;                 // los aliados llegan a la meta con x >= META_X
+const TIEMPO_PARTIDA = 150;         // segundos; si se acaba, gana el enemigo
 const VEL_ALIADO = 240;             // px/seg (igual que el cliente)
-const VEL_ENEMIGO = 180;
+const VEL_ENEMIGO = 215;
 const TICK_MS = 1000 / 30;          // el servidor emite el estado 30 veces por segundo
 const MAX_DT_MOVIMIENTO_MS = 600;   // tolerancia anti-trampa (lag spikes) en el control de velocidad
-const REINICIO_MS = 6000;           // tiempo antes de volver a elegir roles
+const REINICIO_MS = 6000;
+const RETRASO_ENEMIGO_MS = 4000;    // el enemigo sale unos segundos después que los aliados
+const ALCANCE_PODER = 650;          // distancia máxima desde el enemigo para poner trampas/muros
+
+// --- Muros (solo 3 de 240px en un mapa de 800px: nunca se puede cerrar el paso) ---
+const MURO_W = 30;
+const MURO_H = 240;
+const MURO_VIDA_MS = 15000;
+const MURO_MAX = 3;
+const PODER_MURO = { cooldown: 6000 };           // tiempo antes de volver a elegir roles
 
 // --- Trampas ---
 const TRAMPA_RADIO = 35;
@@ -35,6 +44,26 @@ const TIPOS_TRAMPA = {
     lenta: { duracion: 3000, cooldown: 3000 },   // velocidad al 40%
     hielo: { duracion: 2500, cooldown: 8000 }    // congela por completo
 };
+
+function resolverMuros(x, y, muros, r = 20) {
+    for (const m of muros) {
+        const cx = Math.max(m.x - m.w / 2, Math.min(x, m.x + m.w / 2));
+        const cy = Math.max(m.y - m.h / 2, Math.min(y, m.y + m.h / 2));
+        const dx = x - cx;
+        const dy = y - cy;
+        const d = Math.hypot(dx, dy);
+
+        if (d < r) {
+            if (d > 0.0001) {
+                x = cx + (dx / d) * r;
+                y = cy + (dy / d) * r;
+            } else {
+                x = x < m.x ? m.x - m.w / 2 - r : m.x + m.w / 2 + r;
+            }
+        }
+    }
+    return { x, y };
+}
 
 // ========================================
 // CÓDIGO DE SALA
@@ -120,6 +149,16 @@ function enviarRoles(codigo) {
     });
 }
 
+function enviarMuros(codigo) {
+    const sala = obtenerSala(codigo);
+    if (!sala) return;
+
+    io.to(codigo).emit(
+        "actualizarMuros",
+        sala.muros.map(m => ({ id: m.id, x: m.x, y: m.y, w: m.w, h: m.h }))
+    );
+}
+
 function partidaLista(sala) {
     if (!sala || sala.jugadores.size !== 4) return false;
 
@@ -193,16 +232,18 @@ function iniciarCuentaRegresiva(codigo) {
 
         // Los aliados aparecen a la izquierda.
         const posicionesAliados = [
-            { x: 100, y: 120 },
-            { x: 100, y: 250 },
-            { x: 100, y: 380 }
+            { x: 260, y: 240 },
+            { x: 260, y: 400 },
+            { x: 260, y: 560 }
         ];
 
         let indiceAliado = 0;
 
         sala.trampas = [];
-        sala.cooldownsTrampa = { lenta: 0, hielo: 0 };
+        sala.cooldownsTrampa = { lenta: 0, hielo: 0, muro: 0 };
         sala.finPartida = Date.now() + TIEMPO_PARTIDA * 1000;
+        sala.muros = [];
+        sala.salidaEnemigo = Date.now() + RETRASO_ENEMIGO_MS;
         sala.ultimoTiempoEnviado = -1;
         sala.sucio = true;
 
@@ -221,18 +262,26 @@ function iniciarCuentaRegresiva(codigo) {
                 jugador.y = posicion.y;
             } else {
                 // El enemigo empieza bien lejos de los aliados.
-                jugador.x = 560;
-                jugador.y = 250;
+                jugador.x = 60;   // el enemigo aparece ATRÁS de los aliados
+                jugador.y = 400;
             }
         }
 
         io.to(codigo).emit("partidaIniciada", {
             ancho: ANCHO_CANCHA,
-            alto: ALTO_CANCHA
+            alto: ALTO_CANCHA,
+            metaX: META_X,
+            retraso: RETRASO_ENEMIGO_MS,
+            velAliado: VEL_ALIADO,
+            velEnemigo: VEL_ENEMIGO,
+            muroW: MURO_W,
+            muroH: MURO_H,
+            alcance: ALCANCE_PODER
         });
 
         enviarJugadores(codigo);
         enviarTrampas(codigo);
+        enviarMuros(codigo);
         console.log(`Partida iniciada en sala ${codigo}`);
     }, 1000);
 }
@@ -254,6 +303,7 @@ function resetearSala(codigo) {
     sala.partidaTerminada = false;
     sala.enCuentaRegresiva = false;
     sala.trampas = [];
+    sala.muros = [];
 
     for (const j of sala.jugadores.values()) {
         j.rol = null;
@@ -345,6 +395,10 @@ function actualizarSala(codigo, sala, ahora) {
 
     if (sala.trampas.length !== antes) enviarTrampas(codigo);
 
+    const murosAntes = sala.muros.length;
+    sala.muros = sala.muros.filter(m => ahora < m.venceEn);
+    if (sala.muros.length !== murosAntes) enviarMuros(codigo);
+
     // 3) Meta
     for (const aliado of aliados) {
         if (!aliado.muerto && !aliado.llego && aliado.x >= META_X) {
@@ -431,8 +485,10 @@ io.on("connection", socket => {
             timerCuenta: null,
             timerReset: null,
             trampas: [],
-            cooldownsTrampa: { lenta: 0, hielo: 0 },
+            cooldownsTrampa: { lenta: 0, hielo: 0, muro: 0 },
             siguienteIdTrampa: 1,
+            muros: [],
+            salidaEnemigo: 0,
             finPartida: 0,
             ultimoTiempoEnviado: -1,
             sucio: false
@@ -599,6 +655,9 @@ io.on("connection", socket => {
         const dt = Math.min(ahora - (jugador.ultimoMov || ahora), MAX_DT_MOVIMIENTO_MS) / 1000;
         jugador.ultimoMov = ahora;
 
+        // El enemigo sale unos segundos después que los aliados.
+        if (jugador.rol === "enemigo" && ahora < sala.salidaEnemigo) return;
+
         // Congelado: el servidor ignora el movimiento (el cliente tampoco se mueve).
         if ((jugador.congeladoHasta || 0) > ahora) return;
 
@@ -618,17 +677,19 @@ io.on("connection", socket => {
             socket.emit("corregirPosicion", { x: nx, y: ny });
         }
 
-        jugador.x = nx;
-        jugador.y = ny;
+        const pos = resolverMuros(nx, ny, sala.muros);
+        jugador.x = pos.x;
+        jugador.y = pos.y;
         sala.sucio = true; // el tick se encarga de enviarlo
     });
 
     // ------------------------------------
-    // PONER TRAMPA (solo el enemigo)
+    // PODERES DEL ENEMIGO: trampa lenta, trampa de hielo y muro
+    // datos = { tipo, x, y }  (x, y = punto apuntado en el mapa)
     // ------------------------------------
 
-    socket.on("ponerTrampa", tipo => {
-        if (!socket.sala) return;
+    socket.on("ponerTrampa", datos => {
+        if (!socket.sala || !datos) return;
 
         const sala = obtenerSala(socket.sala);
         if (!sala || !sala.partidaComenzada || sala.partidaTerminada) return;
@@ -636,45 +697,72 @@ io.on("connection", socket => {
         const jugador = sala.jugadores.get(socket.id);
         if (!jugador || jugador.rol !== "enemigo") return;
 
-        const config = TIPOS_TRAMPA[tipo];
-        if (!config) return;
+        const tipo = datos.tipo;
+        const esMuro = tipo === "muro";
+        const config = esMuro ? PODER_MURO : TIPOS_TRAMPA[tipo];
+
+        if (!config || !Number.isFinite(datos.x) || !Number.isFinite(datos.y)) return;
 
         const ahora = Date.now();
+        const error = texto => socket.emit("errorTrampa", texto);
 
+        if (ahora < sala.salidaEnemigo) return error("Todavía no podés salir.");
         if (ahora < sala.cooldownsTrampa[tipo]) return;
 
-        if (sala.trampas.length >= TRAMPA_MAX) {
-            socket.emit("errorTrampa", `Máximo ${TRAMPA_MAX} trampas a la vez.`);
-            return;
+        const x = Math.max(20, Math.min(ANCHO_CANCHA - 20, datos.x));
+        const y = Math.max(20, Math.min(ALTO_CANCHA - 20, datos.y));
+
+        if (Math.hypot(x - jugador.x, y - jugador.y) > ALCANCE_PODER) {
+            return error("Está muy lejos.");
         }
 
-        if (jugador.x >= META_X - 40) {
-            socket.emit("errorTrampa", "No podés poner trampas pegado a la meta.");
-            return;
-        }
+        if (esMuro) {
+            if (sala.muros.length >= MURO_MAX) return error(`Máximo ${MURO_MAX} muros a la vez.`);
+            if (x >= META_X - 200) return error("Muy cerca de la meta.");
 
-        for (const otro of sala.jugadores.values()) {
-            if (
-                otro.rol === "aliado" &&
-                !otro.muerto &&
-                Math.hypot(otro.x - jugador.x, otro.y - jugador.y) < TRAMPA_DISTANCIA_MIN_ALIADO
-            ) {
-                socket.emit("errorTrampa", "Hay un aliado demasiado cerca.");
-                return;
+            for (const p of sala.jugadores.values()) {
+                const cx = Math.max(x - MURO_W / 2, Math.min(p.x, x + MURO_W / 2));
+                const cy = Math.max(y - MURO_H / 2, Math.min(p.y, y + MURO_H / 2));
+                if (Math.hypot(p.x - cx, p.y - cy) < 34) return error("Hay un jugador en ese lugar.");
             }
+
+            for (const m of sala.muros) {
+                if (Math.abs(x - m.x) < (MURO_W + m.w) / 2 + 10 && Math.abs(y - m.y) < (MURO_H + m.h) / 2 + 10) {
+                    return error("Ahí ya hay un muro.");
+                }
+            }
+
+            sala.muros.push({
+                id: sala.siguienteIdTrampa++,
+                x, y, w: MURO_W, h: MURO_H,
+                venceEn: ahora + MURO_VIDA_MS
+            });
+
+            enviarMuros(socket.sala);
+        } else {
+            if (sala.trampas.length >= TRAMPA_MAX) return error(`Máximo ${TRAMPA_MAX} trampas a la vez.`);
+            if (x >= META_X - 40) return error("No podés poner trampas pegado a la meta.");
+
+            for (const otro of sala.jugadores.values()) {
+                if (
+                    otro.rol === "aliado" &&
+                    !otro.muerto &&
+                    Math.hypot(otro.x - x, otro.y - y) < TRAMPA_DISTANCIA_MIN_ALIADO
+                ) {
+                    return error("Hay un aliado demasiado cerca.");
+                }
+            }
+
+            sala.trampas.push({
+                id: sala.siguienteIdTrampa++,
+                tipo, x, y,
+                venceEn: ahora + TRAMPA_VIDA_MS
+            });
+
+            enviarTrampas(socket.sala);
         }
 
         sala.cooldownsTrampa[tipo] = ahora + config.cooldown;
-
-        sala.trampas.push({
-            id: sala.siguienteIdTrampa++,
-            tipo,
-            x: jugador.x,
-            y: jugador.y,
-            venceEn: ahora + TRAMPA_VIDA_MS
-        });
-
-        enviarTrampas(socket.sala);
         socket.emit("trampaCooldown", { tipo, ms: config.cooldown });
     });
 

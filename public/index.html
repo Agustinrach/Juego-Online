@@ -1,1891 +1,1089 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>3 vs 1</title>
-
-    <script src="/socket.io/socket.io.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrera contra el enemigo</title>
 
     <style>
-
         * {
             box-sizing: border-box;
         }
 
         body {
             margin: 0;
+            min-height: 100vh;
             font-family: Arial, sans-serif;
-            background: #111;
-            color: white;
-            overflow: hidden;
+            background: #10151e;
+            color: #f4f6fa;
         }
 
-        /* =====================================
-           MENÚ
-        ===================================== */
-
-        #menu {
-            position: fixed;
-            inset: 0;
-
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            background: #111;
-
-            z-index: 1000;
+        button, input {
+            font: inherit;
         }
 
-        .panel {
-            width: 360px;
-            padding: 30px;
-
-            background: #222;
-
-            border-radius: 12px;
-
-            text-align: center;
+        button {
+            padding: 11px 16px;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
         }
 
-        .panel h1 {
-            margin-top: 0;
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
         }
 
         input {
             width: 100%;
-
             padding: 12px;
-
-            margin-bottom: 10px;
-
-            border: none;
-            border-radius: 6px;
-
-            font-size: 16px;
-        }
-
-        button {
-            width: 100%;
-
-            padding: 12px;
-
-            margin-top: 8px;
-
-            border: none;
-            border-radius: 6px;
-
-            background: #3498db;
-
+            border: 1px solid #4b5563;
+            border-radius: 8px;
             color: white;
-
-            font-size: 16px;
-
-            cursor: pointer;
+            background: #1c2533;
+            margin: 8px 0;
         }
 
-        button:hover {
-            opacity: 0.85;
+        .pantalla {
+            width: min(700px, 92%);
+            margin: 45px auto;
+            padding: 25px;
+            background: #1b2431;
+            border: 1px solid #344154;
+            border-radius: 16px;
         }
 
-        #codigoSala {
+        h1, h2 {
+            margin-top: 0;
+        }
+
+        .subtitulo {
+            color: #b6c3d4;
+            line-height: 1.5;
+        }
+
+        .fila {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .fila button {
+            flex: 1;
+        }
+
+        .azul {
+            color: white;
+            background: #2475e8;
+        }
+
+        .rojo {
+            color: white;
+            background: #d83d4c;
+        }
+
+        .gris {
+            color: white;
+            background: #465469;
+        }
+
+        .estado {
+            min-height: 24px;
             margin-top: 15px;
-
-            padding: 12px;
-
-            background: #333;
-
-            border-radius: 6px;
-
-            font-size: 24px;
-
-            letter-spacing: 4px;
+            color: #f7d879;
+            line-height: 1.4;
         }
 
-        #estadoMenu {
-            margin-top: 15px;
-
-            min-height: 20px;
+        .oculto {
+            display: none !important;
         }
-
-        /* =====================================
-           JUEGO
-        ===================================== */
 
         #juego {
-            display: none;
+            width: min(1200px, 96%);
+            margin: 18px auto;
+        }
 
-            width: 100vw;
-            height: 100vh;
+        .barra-superior {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
 
-            position: relative;
+        .tarjeta {
+            background: #1b2431;
+            border: 1px solid #344154;
+            padding: 12px 15px;
+            border-radius: 10px;
+        }
+
+        #instrucciones {
+            margin: 10px 0;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        #progresoFondo {
+            height: 12px;
+            width: 100%;
+            background: #303b4c;
+            overflow: hidden;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+
+        #progreso {
+            width: 0%;
+            height: 100%;
+            background: #35ce85;
+            transition: width 0.1s linear;
         }
 
         #cancha {
-            position: absolute;
-
-            left: 50%;
-            top: 50%;
-
-            width: 800px;
-            height: 500px;
-
-            transform: translate(-50%, -50%);
-
+            position: relative;
+            width: 100%;
+            height: min(600px, 65vh);
+            min-height: 340px;
             overflow: hidden;
-
-            background:
-                linear-gradient(
-                    #2d8a3e,
-                    #287b38
-                );
-
-            border: 4px solid white;
-
-            cursor: crosshair;
+            border: 3px solid #536274;
+            border-radius: 10px;
+            background: #203b31;
+            touch-action: none;
+            user-select: none;
         }
-
-        /* =====================================
-           MUNDO
-        ===================================== */
 
         #mundo {
-
             position: absolute;
-
             left: 0;
             top: 0;
-
             width: 5000px;
             height: 600px;
-
-            transform: translate3d(0, 0, 0);
-
-            will-change: transform;
+            transform: translateX(0);
+            background-color: #315b42;
+            background-image:
+                repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent 48px,
+                    rgba(255,255,255,0.06) 49px,
+                    rgba(255,255,255,0.06) 50px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    rgba(255,255,255,0.025) 0px,
+                    rgba(255,255,255,0.025) 49px,
+                    transparent 50px,
+                    transparent 100px
+                );
         }
 
-        /* =====================================
-           META
-        ===================================== */
+        .linea {
+            position: absolute;
+            top: 0;
+            height: 600px;
+            width: 6px;
+            z-index: 1;
+        }
+
+        #salida {
+            left: 140px;
+            background: #e5e7eb;
+        }
 
         #meta {
-
-            position: absolute;
-
-            left: 4850px;
-            top: 0;
-
-            width: 10px;
-            height: 600px;
-
-            background: white;
-
-            box-shadow:
-                0 0 20px white;
-        }
-
-        #textoMeta {
-
-            position: absolute;
-
             left: 4800px;
-            top: 20px;
-
-            width: 110px;
-
-            text-align: center;
-
-            font-weight: bold;
-
-            color: white;
-
-            pointer-events: none;
+            width: 12px;
+            background: repeating-linear-gradient(
+                0deg,
+                #fff 0px,
+                #fff 18px,
+                #111 18px,
+                #111 36px
+            );
         }
 
-        /* =====================================
-           JUGADORES
-        ===================================== */
+        .etiquetaLinea {
+            position: absolute;
+            top: 12px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px black;
+            white-space: nowrap;
+        }
 
         .jugador {
-
             position: absolute;
-
             width: 40px;
             height: 40px;
-
+            border: 3px solid white;
             border-radius: 50%;
-
-            transform:
-                translate3d(
-                    -50%,
-                    -50%,
-                    0
-                );
-
             display: flex;
-
             justify-content: center;
             align-items: center;
-
-            font-size: 11px;
-
+            font-size: 12px;
             font-weight: bold;
-
             color: white;
-
-            pointer-events: none;
-
-            will-change:
-                transform,
-                left,
-                top;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            box-shadow: 0 2px 8px #0007;
         }
 
         .jugador.aliado {
-            background: #3498db;
+            background: #2176f3;
         }
 
         .jugador.enemigo {
-            background: #e74c3c;
-        }
-
-        .jugador.local {
-
-            border: 4px solid white;
-
-            box-shadow:
-                0 0 15px white;
+            background: #e33d4d;
+            border-radius: 10px;
         }
 
         .jugador.muerto {
-
-            opacity: 0.3;
-
-            filter: grayscale(1);
+            background: #646b75;
+            border-color: #a4aab2;
+            opacity: 0.65;
         }
 
         .jugador.ralentizado {
-
-            box-shadow:
-                0 0 0 6px rgba(
-                    255,
-                    230,
-                    0,
-                    0.35
-                );
+            box-shadow: 0 0 0 6px #ffdb4d88, 0 2px 8px #0007;
         }
 
-        /* =====================================
-           TRAMPAS
-        ===================================== */
+        .jugador.yo {
+            outline: 3px solid white;
+            outline-offset: 3px;
+        }
 
         .trampa {
-
             position: absolute;
-
-            width: 42px;
-            height: 42px;
-
-            transform:
-                translate3d(
-                    -50%,
-                    -50%,
-                    0
-                );
-
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate(-50%, -50%);
+            background: #242424;
+            border: 3px solid #ffda4d;
             border-radius: 50%;
-
-            background: #8e44ad;
-
-            border: 3px solid #f1c40f;
-
-            box-shadow:
-                0 0 12px
-                rgba(
-                    241,
-                    196,
-                    15,
-                    0.8
-                );
-
-            pointer-events: none;
+            font-size: 22px;
+            z-index: 3;
+            box-shadow: 0 0 12px #0008;
         }
 
-        /* =====================================
-           HUD
-        ===================================== */
-
-        #hud {
-
-            position: fixed;
-
-            top: 15px;
-            left: 15px;
-
-            z-index: 500;
-
-            min-width: 230px;
-
-            padding: 15px;
-
-            background:
-                rgba(
-                    0,
-                    0,
-                    0,
-                    0.75
-                );
-
+        #avisoFinal {
+            padding: 18px;
+            border: 1px solid #64748b;
             border-radius: 10px;
-
-            pointer-events: none;
-        }
-
-        #hud div {
-            margin-bottom: 6px;
-        }
-
-        #hud div:last-child {
-            margin-bottom: 0;
-        }
-
-        /* =====================================
-           MENSAJE CENTRAL
-        ===================================== */
-
-        #mensaje {
-
-            position: fixed;
-
-            left: 50%;
-            top: 50%;
-
-            transform:
-                translate(-50%, -50%);
-
-            z-index: 900;
-
-            padding: 30px 50px;
-
-            background:
-                rgba(
-                    0,
-                    0,
-                    0,
-                    0.9
-                );
-
-            border-radius: 15px;
-
-            font-size: 32px;
-
-            font-weight: bold;
-
+            margin-top: 12px;
             text-align: center;
-
-            display: none;
+            font-size: 20px;
+            font-weight: bold;
+            background: #1b2431;
         }
 
-        /* =====================================
-           INDICADOR TRAMPA
-        ===================================== */
-
-        #ayudaTrampa {
-
-            position: fixed;
-
-            bottom: 15px;
-            left: 50%;
-
-            transform:
-                translateX(-50%);
-
-            z-index: 500;
-
-            padding: 10px 18px;
-
-            background:
-                rgba(
-                    0,
-                    0,
-                    0,
-                    0.75
-                );
-
-            border-radius: 8px;
-
-            pointer-events: none;
-
-            display: none;
+        .pequeno {
+            color: #aebdd0;
+            font-size: 13px;
         }
 
+        @media (max-width: 600px) {
+            .pantalla {
+                padding: 18px;
+                margin: 20px auto;
+            }
+
+            #juego {
+                width: 98%;
+            }
+
+            #cancha {
+                min-height: 300px;
+            }
+        }
     </style>
-
 </head>
 
 <body>
 
-    <!-- ======================================
-         MENÚ
-    ======================================= -->
+    <!-- MENÚ -->
+    <section id="menu" class="pantalla">
+        <h1>🏁 Carrera contra el enemigo</h1>
 
-    <div id="menu">
+        <p class="subtitulo">
+            Tres aliados deben llegar a la meta. Un enemigo más lento
+            intentará alcanzarlos y colocar trampas para retrasarlos.
+        </p>
 
-        <div class="panel">
-
-            <h1>3 vs 1</h1>
-
-            <input
-                type="text"
-                id="nombre"
-                placeholder="Tu nombre"
-                maxlength="15"
-            >
-
-            <button id="crearBtn">
-                Crear sala
-            </button>
-
-            <input
-                type="text"
-                id="codigo"
-                placeholder="Código de sala"
-                maxlength="4"
-            >
-
-            <button id="unirseBtn">
-                Unirse a sala
-            </button>
-
-            <div id="codigoSala"></div>
-
-            <button
-                id="aliadoBtn"
-                style="display:none;"
-            >
-                Jugar como aliado
-            </button>
-
-            <button
-                id="enemigoBtn"
-                style="display:none;"
-            >
-                Jugar como enemigo
-            </button>
-
-            <div id="estadoMenu"></div>
-
+        <div class="fila">
+            <button id="crearSala" class="azul">Crear partida</button>
         </div>
 
-    </div>
+        <h3>Unirse a una partida</h3>
+        <input
+            id="codigoInput"
+            maxlength="5"
+            placeholder="Código de sala"
+            autocomplete="off"
+        >
 
-    <!-- ======================================
-         JUEGO
-    ======================================= -->
+        <div class="fila">
+            <button id="unirseSala" class="gris">Unirse</button>
+        </div>
 
-    <div id="juego">
+        <div id="mensaje" class="estado"></div>
+    </section>
+
+    <!-- ELECCIÓN DE ROL -->
+    <section id="seleccionRol" class="pantalla oculto">
+        <h2>Elegí tu rol</h2>
+
+        <p>Código de sala: <strong id="codigoSalaRol"></strong></p>
+        <p id="estadoSala" class="subtitulo">
+            Esperando a que se unan los jugadores...
+        </p>
+
+        <div class="fila">
+            <button id="botonAliado" class="azul">
+                🏃 Ser aliado
+            </button>
+
+            <button id="botonEnemigo" class="rojo">
+                👹 Ser enemigo
+            </button>
+        </div>
+
+        <p id="rolElegido" class="estado">Todavía no elegiste un rol.</p>
+
+        <p>
+            Aliados elegidos:
+            <strong id="cantidadAliados">0</strong> / 3
+        </p>
+
+        <p>
+            Enemigo:
+            <strong id="estadoEnemigo">Disponible</strong>
+        </p>
+
+        <p>
+            Jugadores conectados:
+            <strong id="cantidadJugadores">1</strong> / 4
+        </p>
+
+        <div id="mensajeRol" class="estado">
+            La partida comienza automáticamente cuando estén los cuatro jugadores.
+        </div>
+    </section>
+
+    <!-- JUEGO -->
+    <main id="juego" class="oculto">
+
+        <div class="barra-superior">
+            <div class="tarjeta">
+                Sala: <strong id="codigoSala"></strong>
+                <br>
+                Rol: <strong id="miRolTexto"></strong>
+            </div>
+
+            <div class="tarjeta">
+                Aliados vivos:
+                <strong id="aliadosVivos">3</strong> / 3
+            </div>
+
+            <div class="tarjeta">
+                <span id="estadoTrampa">Trampas disponibles</span>
+            </div>
+        </div>
+
+        <div class="tarjeta">
+            <div class="barra-superior">
+                <strong>Progreso hacia la meta</strong>
+                <span id="porcentaje">0%</span>
+            </div>
+
+            <div id="progresoFondo">
+                <div id="progreso"></div>
+            </div>
+        </div>
+
+        <p id="instrucciones"></p>
 
         <div id="cancha">
-
             <div id="mundo">
-
-                <div id="meta"></div>
-
-                <div id="textoMeta">
-                    META
+                <div id="salida" class="linea">
+                    <span class="etiquetaLinea">SALIDA</span>
                 </div>
 
+                <div id="meta" class="linea">
+                    <span class="etiquetaLinea">META</span>
+                </div>
             </div>
-
         </div>
 
-        <!-- HUD -->
+        <div id="avisoFinal" class="oculto"></div>
+        <div id="mensajeJuego" class="estado"></div>
+    </main>
 
-        <div id="hud">
-
-            <div>
-                Rol:
-                <strong id="hudRol">
-                    -
-                </strong>
-            </div>
-
-            <div>
-                Aliados vivos:
-                <strong id="hudAliados">
-                    0
-                </strong>
-                / 3
-            </div>
-
-            <div>
-                Progreso:
-                <strong id="hudProgreso">
-                    0%
-                </strong>
-            </div>
-
-            <div id="hudTrampa">
-                Trampa:
-                <strong id="hudCooldown">
-                    Lista
-                </strong>
-            </div>
-
-        </div>
-
-        <div id="ayudaTrampa">
-            Hacé clic en el mapa para colocar una trampa
-        </div>
-
-    </div>
-
-    <div id="mensaje"></div>
+    <script src="/socket.io/socket.io.js"></script>
 
     <script>
-
-        // ==========================================
-        // SOCKET
-        // ==========================================
+        // =========================================
+        // CONEXIÓN Y CONSTANTES
+        // =========================================
 
         const socket = io();
 
-        // ==========================================
-        // CONFIGURACIÓN
-        // ==========================================
-
-        const ANCHO_PANTALLA = 800;
-        const ALTO_PANTALLA = 500;
-
         const ANCHO_MAPA = 5000;
         const ALTO_MAPA = 600;
+        const META_X = 4800;
 
-        const META_X = 4850;
-
+        const RADIO_JUGADOR = 20;
         const VELOCIDAD_ALIADO = 5;
         const VELOCIDAD_ENEMIGO = 3.5;
+        const MULTIPLICADOR_RALENTIZADO = 0.45;
 
-        const INTERVALO_ENVIO = 50;
+        const COOLDOWN_TRAMPA = 3000;
 
-        // ==========================================
-        // ESTADO LOCAL
-        // ==========================================
+        // =========================================
+        // ELEMENTOS HTML
+        // =========================================
+
+        const menu = document.getElementById("menu");
+        const seleccionRol = document.getElementById("seleccionRol");
+        const juego = document.getElementById("juego");
+
+        const crearSala = document.getElementById("crearSala");
+        const unirseSala = document.getElementById("unirseSala");
+        const codigoInput = document.getElementById("codigoInput");
+
+        const mensaje = document.getElementById("mensaje");
+        const mensajeRol = document.getElementById("mensajeRol");
+        const mensajeJuego = document.getElementById("mensajeJuego");
+
+        const codigoSalaRol = document.getElementById("codigoSalaRol");
+        const codigoSala = document.getElementById("codigoSala");
+        const cantidadJugadores = document.getElementById("cantidadJugadores");
+        const cantidadAliados = document.getElementById("cantidadAliados");
+        const estadoEnemigo = document.getElementById("estadoEnemigo");
+        const estadoSala = document.getElementById("estadoSala");
+        const rolElegido = document.getElementById("rolElegido");
+
+        const botonAliado = document.getElementById("botonAliado");
+        const botonEnemigo = document.getElementById("botonEnemigo");
+
+        const cancha = document.getElementById("cancha");
+        const mundo = document.getElementById("mundo");
+
+        const miRolTexto = document.getElementById("miRolTexto");
+        const aliadosVivosElemento = document.getElementById("aliadosVivos");
+        const estadoTrampa = document.getElementById("estadoTrampa");
+
+        const progreso = document.getElementById("progreso");
+        const porcentaje = document.getElementById("porcentaje");
+
+        const instrucciones = document.getElementById("instrucciones");
+        const avisoFinal = document.getElementById("avisoFinal");
+
+        // =========================================
+        // ESTADO
+        // =========================================
 
         let miId = null;
         let miRol = null;
+        let miSala = null;
 
-        let salaActual = null;
-
-        let partidaComenzada = false;
+        let jugadores = [];
+        let trampas = [];
 
         let miJugador = {
-
-            x: 150,
-            y: 300,
-
-            objetivoX: 150,
-            objetivoY: 300,
-
-            ralentizadoHasta: 0,
-
-            muerto: false
+            x: 160,
+            y: ALTO_MAPA / 2
         };
 
-        let jugadores = {};
-
-        let trampas = {};
-
+        let teclas = {};
         let camaraX = 0;
 
+        let partidaComenzada = false;
+        let partidaTerminada = false;
+
         let ultimoEnvio = 0;
+        let ultimoTiempo = 0;
+        let cooldownHasta = 0;
 
-        let ultimoFrame = performance.now();
+        let solicitudMovimientoPendiente = false;
+        let mensajeTrampaHasta = 0;
 
-        let teclas = {};
+        const elementosJugadores = new Map();
+        const elementosTrampas = new Map();
 
-        let cooldownTrampaHasta = 0;
+        // =========================================
+        // FUNCIONES DE INTERFAZ
+        // =========================================
 
-        // ==========================================
-        // ELEMENTOS
-        // ==========================================
+        function mostrarPantalla(pantalla) {
+            menu.classList.add("oculto");
+            seleccionRol.classList.add("oculto");
+            juego.classList.add("oculto");
 
-        const menu =
-            document.getElementById("menu");
-
-        const juego =
-            document.getElementById("juego");
-
-        const cancha =
-            document.getElementById("cancha");
-
-        const mundo =
-            document.getElementById("mundo");
-
-        const nombreInput =
-            document.getElementById("nombre");
-
-        const codigoInput =
-            document.getElementById("codigo");
-
-        const crearBtn =
-            document.getElementById("crearBtn");
-
-        const unirseBtn =
-            document.getElementById("unirseBtn");
-
-        const aliadoBtn =
-            document.getElementById("aliadoBtn");
-
-        const enemigoBtn =
-            document.getElementById("enemigoBtn");
-
-        const codigoSala =
-            document.getElementById("codigoSala");
-
-        const estadoMenu =
-            document.getElementById("estadoMenu");
-
-        const mensaje =
-            document.getElementById("mensaje");
-
-        const ayudaTrampa =
-            document.getElementById("ayudaTrampa");
-
-        const hudRol =
-            document.getElementById("hudRol");
-
-        const hudAliados =
-            document.getElementById("hudAliados");
-
-        const hudProgreso =
-            document.getElementById("hudProgreso");
-
-        const hudCooldown =
-            document.getElementById("hudCooldown");
-
-        // ==========================================
-        // CREAR SALA
-        // ==========================================
-
-        crearBtn.addEventListener(
-            "click",
-            () => {
-
-                const nombre =
-                    nombreInput.value.trim() ||
-                    "Jugador";
-
-                socket.emit(
-                    "crearSala",
-                    {
-                        nombre
-                    }
-                );
-            }
-        );
-
-        // ==========================================
-        // UNIRSE
-        // ==========================================
-
-        unirseBtn.addEventListener(
-            "click",
-            () => {
-
-                const codigo =
-                    codigoInput.value
-                        .trim()
-                        .toUpperCase();
-
-                const nombre =
-                    nombreInput.value.trim() ||
-                    "Jugador";
-
-                if (!codigo) {
-
-                    estadoMenu.textContent =
-                        "Ingresá un código.";
-
-                    return;
-                }
-
-                socket.emit(
-                    "unirseSala",
-                    {
-                        codigo,
-                        nombre
-                    }
-                );
-            }
-        );
-
-        // ==========================================
-        // SALA CREADA
-        // ==========================================
-
-        socket.on(
-            "salaCreada",
-            datos => {
-
-                salaActual =
-                    datos.codigo;
-
-                codigoSala.textContent =
-                    `Código: ${datos.codigo}`;
-
-                estadoMenu.textContent =
-                    "Elegí tu rol.";
-
-                aliadoBtn.style.display =
-                    "block";
-
-                enemigoBtn.style.display =
-                    "block";
-            }
-        );
-
-        // ==========================================
-        // SALA UNIDA
-        // ==========================================
-
-        socket.on(
-            "salaUnida",
-            datos => {
-
-                salaActual =
-                    datos.codigo;
-
-                codigoSala.textContent =
-                    `Sala: ${datos.codigo}`;
-
-                estadoMenu.textContent =
-                    "Elegí tu rol.";
-
-                aliadoBtn.style.display =
-                    "block";
-
-                enemigoBtn.style.display =
-                    "block";
-            }
-        );
-
-        // ==========================================
-        // ERRORES
-        // ==========================================
-
-        socket.on(
-            "errorSala",
-            texto => {
-
-                estadoMenu.textContent =
-                    texto;
-            }
-        );
-
-        socket.on(
-            "errorRol",
-            texto => {
-
-                estadoMenu.textContent =
-                    texto;
-            }
-        );
-
-        // ==========================================
-        // ELEGIR ALIADO
-        // ==========================================
-
-        aliadoBtn.addEventListener(
-            "click",
-            () => {
-
-                socket.emit(
-                    "elegirRol",
-                    "aliado"
-                );
-
-                estadoMenu.textContent =
-                    "Rol seleccionado: aliado";
-            }
-        );
-
-        // ==========================================
-        // ELEGIR ENEMIGO
-        // ==========================================
-
-        enemigoBtn.addEventListener(
-            "click",
-            () => {
-
-                socket.emit(
-                    "elegirRol",
-                    "enemigo"
-                );
-
-                estadoMenu.textContent =
-                    "Rol seleccionado: enemigo";
-            }
-        );
-
-        // ==========================================
-        // ACTUALIZAR ROLES
-        // ==========================================
-
-        socket.on(
-            "actualizarRoles",
-            datos => {
-
-                jugadores = datos;
-
-                actualizarMenuRoles();
-            }
-        );
-
-        function actualizarMenuRoles() {
-
-            let aliados = 0;
-            let enemigo = 0;
-
-            for (const id in jugadores) {
-
-                const jugador =
-                    jugadores[id];
-
-                if (jugador.rol === "aliado") {
-                    aliados++;
-                }
-
-                if (jugador.rol === "enemigo") {
-                    enemigo++;
-                }
-            }
-
-            estadoMenu.innerHTML =
-                `
-                Aliados: ${aliados}/3<br>
-                Enemigos: ${enemigo}/1
-                `;
+            pantalla.classList.remove("oculto");
         }
 
-        // ==========================================
-        // PARTIDA INICIADA
-        // ==========================================
-
-        socket.on(
-            "partidaIniciada",
-            estado => {
-
-                partidaComenzada = true;
-
-                menu.style.display =
-                    "none";
-
-                juego.style.display =
-                    "block";
-
-                procesarEstado(estado);
-
-                mostrarMensaje(
-                    "¡Comienza la partida!",
-                    1200
-                );
-
-                requestAnimationFrame(
-                    loop
-                );
-            }
-        );
-
-        // ==========================================
-        // ESTADO DEL SERVIDOR
-        // ==========================================
-
-        socket.on(
-            "actualizarMapa",
-            estado => {
-
-                procesarEstado(estado);
-            }
-        );
-
-        function procesarEstado(estado) {
-
-            if (!estado) return;
-
-            // --------------------------------------
-            // JUGADORES
-            // --------------------------------------
-
-            if (estado.jugadores) {
-
-                for (
-                    const id in estado.jugadores
-                ) {
-
-                    const nuevo =
-                        estado.jugadores[id];
-
-                    if (
-                        id === miId
-                    ) {
-
-                        // No pisamos continuamente
-                        // nuestro movimiento local.
-
-                        if (
-                            !miJugador.muerto &&
-                            !nuevo.muerto
-                        ) {
-
-                            const diferencia =
-                                distancia(
-                                    miJugador.x,
-                                    miJugador.y,
-                                    nuevo.x,
-                                    nuevo.y
-                                );
-
-                            /*
-                             * Si la diferencia es pequeña,
-                             * dejamos que el movimiento local
-                             * siga libremente.
-                             */
-
-                            if (diferencia > 80) {
-
-                                miJugador.x =
-                                    nuevo.x;
-
-                                miJugador.y =
-                                    nuevo.y;
-                            }
-                        }
-
-                        miJugador.muerto =
-                            nuevo.muerto;
-
-                        miJugador.ralentizadoHasta =
-                            nuevo.ralentizadoHasta;
-
-                        miJugador.objetivoX =
-                            nuevo.x;
-
-                        miJugador.objetivoY =
-                            nuevo.y;
-
-                    } else {
-
-                        // ----------------------------------
-                        // JUGADORES REMOTOS
-                        // ----------------------------------
-
-                        if (!jugadores[id]) {
-
-                            jugadores[id] = {
-
-                                ...nuevo,
-
-                                renderX: nuevo.x,
-                                renderY: nuevo.y,
-
-                                objetivoX: nuevo.x,
-                                objetivoY: nuevo.y
-                            };
-
-                        } else {
-
-                            jugadores[id].rol =
-                                nuevo.rol;
-
-                            jugadores[id].nombre =
-                                nuevo.nombre;
-
-                            jugadores[id].muerto =
-                                nuevo.muerto;
-
-                            jugadores[id].ralentizadoHasta =
-                                nuevo.ralentizadoHasta;
-
-                            jugadores[id].objetivoX =
-                                nuevo.x;
-
-                            jugadores[id].objetivoY =
-                                nuevo.y;
-                        }
-                    }
-                }
-            }
-
-            // --------------------------------------
-            // TRAMPAS
-            // --------------------------------------
-
-            if (estado.trampas) {
-
-                const nuevasTrampas = {};
-
-                for (
-                    const trampa of estado.trampas
-                ) {
-
-                    nuevasTrampas[trampa.id] =
-                        trampa;
-
-                    if (
-                        !trampas[trampa.id]
-                    ) {
-
-                        crearTrampaVisual(
-                            trampa
-                        );
-                    }
-                }
-
-                // Eliminar visuales que ya no existen
-
-                for (
-                    const id in trampas
-                ) {
-
-                    if (
-                        !nuevasTrampas[id]
-                    ) {
-
-                        const elemento =
-                            document.getElementById(
-                                `trampa-${id}`
-                            );
-
-                        if (elemento) {
-                            elemento.remove();
-                        }
-                    }
-                }
-
-                trampas =
-                    nuevasTrampas;
-            }
-
-            actualizarHUD();
+        function mostrarError(texto) {
+            mensaje.textContent = texto;
+            mensajeRol.textContent = texto;
+            mensajeJuego.textContent = texto;
         }
 
-        // ==========================================
-        // IDENTIFICACIÓN
-        // ==========================================
+        function entrarEnSala(codigo) {
+            miSala = codigo;
+            codigoSala.textContent = codigo;
+            codigoSalaRol.textContent = codigo;
 
-        socket.on(
-            "connect",
-            () => {
+            mostrarPantalla(seleccionRol);
 
-                miId =
-                    socket.id;
+            mensajeRol.textContent =
+                "Elegí tu rol. La partida necesita tres aliados y un enemigo.";
+        }
+
+        function actualizarEstadoRoles(datos) {
+            cantidadAliados.textContent = datos.aliados ?? 0;
+            cantidadJugadores.textContent = datos.jugadores ?? 0;
+
+            const enemigoElegido =
+                datos.enemigo === true || (datos.enemigos ?? 0) > 0;
+
+            estadoEnemigo.textContent =
+                enemigoElegido ? "Ya elegido" : "Disponible";
+
+            botonEnemigo.disabled =
+                enemigoElegido && miRol !== "enemigo";
+
+            if (miRol === "aliado") botonAliado.disabled = true;
+            if (miRol === "enemigo") botonEnemigo.disabled = true;
+
+            estadoSala.textContent =
+                `${datos.jugadores ?? 0} de 4 jugadores conectados.`;
+
+            if (!partidaComenzada && !partidaTerminada) {
+                mensajeRol.textContent =
+                    `Roles elegidos: ${datos.aliados ?? 0} aliados y ` +
+                    `${datos.enemigos ?? (enemigoElegido ? 1 : 0)} enemigo(s).`;
             }
-        );
+        }
 
-        // ==========================================
-        // LOOP PRINCIPAL
-        // ==========================================
+        // =========================================
+        // CREAR / UNIRSE A UNA SALA
+        // =========================================
 
-        function loop(ahora) {
+        crearSala.addEventListener("click", () => {
+            mensaje.textContent = "Creando sala...";
+            socket.emit("crearSala");
+        });
 
-            if (!partidaComenzada) {
+        unirseSala.addEventListener("click", () => {
+            const codigo = codigoInput.value.trim().toUpperCase();
+
+            if (codigo.length !== 5) {
+                mensaje.textContent = "Ingresá un código de 5 caracteres.";
                 return;
             }
 
-            const delta =
-                Math.min(
-                    ahora - ultimoFrame,
-                    50
-                );
+            mensaje.textContent = "Intentando unirse...";
+            socket.emit("unirseSala", codigo);
+        });
 
-            ultimoFrame = ahora;
+        codigoInput.addEventListener("keydown", evento => {
+            if (evento.key === "Enter") unirseSala.click();
+        });
 
-            actualizarMovimiento(delta);
+        botonAliado.addEventListener("click", () => {
+            if (!miSala || partidaComenzada) return;
+            socket.emit("elegirRol", "aliado");
+        });
 
-            interpolarJugadores();
+        botonEnemigo.addEventListener("click", () => {
+            if (!miSala || partidaComenzada) return;
+            socket.emit("elegirRol", "enemigo");
+        });
 
-            actualizarCamara();
+        // =========================================
+        // SOCKET.IO
+        // =========================================
+
+        socket.on("connect", () => {
+            miId = socket.id;
+        });
+
+        socket.on("salaCreada", codigo => {
+            entrarEnSala(codigo);
+        });
+
+        socket.on("salaUnida", codigo => {
+            entrarEnSala(codigo);
+        });
+
+        socket.on("errorJuego", texto => {
+            mostrarError(texto);
+        });
+
+        socket.on("rolElegido", rol => {
+            miRol = rol;
+
+            rolElegido.textContent =
+                rol === "aliado"
+                    ? "Elegiste ser aliado. ¡Corré hasta la meta!"
+                    : "Elegiste ser enemigo. Hacé clic en el mapa para poner trampas.";
+
+            botonAliado.disabled = rol === "aliado";
+            botonEnemigo.disabled = rol === "enemigo";
+        });
+
+        socket.on("actualizarRoles", datos => {
+            actualizarEstadoRoles(datos);
+        });
+
+        socket.on("partidaIniciada", datos => {
+            partidaComenzada = true;
+            partidaTerminada = false;
+
+            jugadores = [];
+            trampas = [];
+
+            if (datos) {
+                mundo.style.width = datos.anchoMapa + "px";
+                mundo.style.height = datos.altoMapa + "px";
+            }
+
+            miJugador = {
+                x: 160,
+                y: ALTO_MAPA / 2
+            };
+
+            mostrarPantalla(juego);
+
+            miRolTexto.textContent =
+                miRol === "enemigo" ? "👹 Enemigo" : "🏃 Aliado";
+
+            if (miRol === "enemigo") {
+                instrucciones.textContent =
+                    "Sos el enemigo. Sos más lento: hacé clic en el mapa para colocar trampas. " +
+                    "Las trampas ralentizan a los aliados durante 4 segundos.";
+                cancha.style.cursor = "crosshair";
+            } else {
+                instrucciones.textContent =
+                    "Sos un aliado. Movete con W, A, S y D para llegar a la meta. " +
+                    "Evitá al enemigo y las trampas amarillas.";
+                cancha.style.cursor = "default";
+            }
+
+            mensajeJuego.textContent = "¡La partida comenzó!";
+            avisoFinal.classList.add("oculto");
+            teclas = {};
+        });
+
+        socket.on("actualizarJugadores", lista => {
+            if (!Array.isArray(lista)) return;
+
+            jugadores = lista;
+
+            const yo = lista.find(j => j.id === miId);
+
+            if (yo) {
+                // Actualización de posición del servidor.
+                // El movimiento local se mantiene fluido, sin saltos hacia atrás.
+                if (!solicitudMovimientoPendiente) {
+                    miJugador.x = yo.x;
+                    miJugador.y = yo.y;
+                }
+
+                if (yo.rol) miRol = yo.rol;
+            }
 
             renderizarJugadores();
-
-            renderizarTrampas();
-
             actualizarHUD();
+        });
 
-            requestAnimationFrame(
-                loop
-            );
-        }
+        socket.on("actualizarTrampas", lista => {
+            trampas = Array.isArray(lista) ? lista : [];
+            renderizarTrampas();
+        });
 
-        // ==========================================
-        // TECLADO
-        // ==========================================
+        socket.on("trampaActivada", datos => {
+            if (datos.jugadorId === miId) {
+                mensajeJuego.textContent =
+                    "¡Pisaste una trampa! Te movés más lento durante unos segundos.";
 
-        window.addEventListener(
-            "keydown",
-            event => {
+                mensajeTrampaHasta = Date.now() + 4000;
+            }
+        });
 
-                const tecla =
-                    event.key.toLowerCase();
+        socket.on("trampaCooldown", milisegundos => {
+            cooldownHasta = Date.now() + Math.max(0, milisegundos || 0);
+            actualizarHUD();
+        });
 
-                if (
-                    [
-                        "w",
-                        "a",
-                        "s",
-                        "d",
-                        "arrowup",
-                        "arrowdown",
-                        "arrowleft",
-                        "arrowright"
-                    ].includes(tecla)
-                ) {
+        socket.on("aliadoMuerto", datos => {
+            if (datos.jugadorId === miId) {
+                teclas = {};
+                mensajeJuego.textContent =
+                    "El enemigo te atrapó. Ya no podés moverte.";
+            }
+        });
 
-                    event.preventDefault();
+        socket.on("partidaTerminada", datos => {
+            partidaTerminada = true;
+            partidaComenzada = false;
+            teclas = {};
 
-                    teclas[tecla] = true;
+            avisoFinal.classList.remove("oculto");
+
+            if (datos.ganador === "aliados") {
+                avisoFinal.textContent = "🏁 ¡GANARON LOS ALIADOS!";
+                avisoFinal.style.color = "#55e69b";
+            } else {
+                avisoFinal.textContent = "👹 ¡GANÓ EL ENEMIGO!";
+                avisoFinal.style.color = "#ff707d";
+            }
+
+            mensajeJuego.textContent = datos.motivo || "";
+            cancha.style.cursor = "default";
+        });
+
+        socket.on("partidaCancelada", datos => {
+            partidaComenzada = false;
+            partidaTerminada = true;
+            teclas = {};
+
+            avisoFinal.classList.remove("oculto");
+            avisoFinal.textContent = "Partida cancelada";
+            mensajeJuego.textContent = datos.mensaje || "Un jugador se desconectó.";
+        });
+
+        // =========================================
+        // RENDERIZAR JUGADORES
+        // =========================================
+
+        function renderizarJugadores() {
+            const idsActivos = new Set();
+
+            for (const jugador of jugadores) {
+                idsActivos.add(jugador.id);
+
+                let elemento = elementosJugadores.get(jugador.id);
+
+                if (!elemento) {
+                    elemento = document.createElement("div");
+                    elemento.className = "jugador";
+
+                    mundo.appendChild(elemento);
+                    elementosJugadores.set(jugador.id, elemento);
+                }
+
+                elemento.className = "jugador";
+
+                if (jugador.rol === "aliado") {
+                    elemento.classList.add("aliado");
+                } else if (jugador.rol === "enemigo") {
+                    elemento.classList.add("enemigo");
+                }
+
+                if (jugador.muerto) {
+                    elemento.classList.add("muerto");
+                }
+
+                if (jugador.ralentizado) {
+                    elemento.classList.add("ralentizado");
+                }
+
+                if (jugador.id === miId) {
+                    elemento.classList.add("yo");
+                }
+
+                elemento.textContent =
+                    jugador.id === miId
+                        ? "YO"
+                        : jugador.rol === "enemigo"
+                            ? "E"
+                            : "A";
+
+                elemento.style.left = jugador.x + "px";
+                elemento.style.top = jugador.y + "px";
+
+                elemento.title =
+                    (jugador.rol || "Sin rol") +
+                    (jugador.muerto ? " - eliminado" : "");
+            }
+
+            for (const [id, elemento] of elementosJugadores.entries()) {
+                if (!idsActivos.has(id)) {
+                    elemento.remove();
+                    elementosJugadores.delete(id);
                 }
             }
-        );
+        }
 
-        window.addEventListener(
-            "keyup",
-            event => {
+        // =========================================
+        // RENDERIZAR TRAMPAS
+        // =========================================
 
-                const tecla =
-                    event.key.toLowerCase();
+        function renderizarTrampas() {
+            const idsActivos = new Set();
 
-                teclas[tecla] = false;
+            for (const trampa of trampas) {
+                idsActivos.add(trampa.id);
+
+                let elemento = elementosTrampas.get(trampa.id);
+
+                if (!elemento) {
+                    elemento = document.createElement("div");
+                    elemento.className = "trampa";
+                    elemento.textContent = "🪤";
+                    mundo.appendChild(elemento);
+
+                    elementosTrampas.set(trampa.id, elemento);
+                }
+
+                elemento.style.left = trampa.x + "px";
+                elemento.style.top = trampa.y + "px";
             }
-        );
 
-        // ==========================================
-        // MOVIMIENTO LOCAL
-        // ==========================================
+            for (const [id, elemento] of elementosTrampas.entries()) {
+                if (!idsActivos.has(id)) {
+                    elemento.remove();
+                    elementosTrampas.delete(id);
+                }
+            }
+        }
 
-        function actualizarMovimiento(delta) {
+        // =========================================
+        // HUD
+        // =========================================
 
+        function actualizarHUD() {
+            const aliadosVivos = jugadores.filter(
+                j => j.rol === "aliado" && !j.muerto
+            ).length;
+
+            aliadosVivosElemento.textContent = aliadosVivos;
+
+            const jugadorLocal = jugadores.find(j => j.id === miId);
+
+            if (jugadorLocal && jugadorLocal.muerto) {
+                miJugador.x = jugadorLocal.x;
+                miJugador.y = jugadorLocal.y;
+            }
+
+            const porcentajeProgreso = Math.max(
+                0,
+                Math.min(100, (miJugador.x / META_X) * 100)
+            );
+
+            progreso.style.width = porcentajeProgreso + "%";
+            porcentaje.textContent = Math.floor(porcentajeProgreso) + "%";
+
+            if (miRol === "enemigo") {
+                const restante = Math.max(0, cooldownHasta - Date.now());
+
+                estadoTrampa.textContent = restante > 0
+                    ? `Próxima trampa: ${(restante / 1000).toFixed(1)} s`
+                    : `Trampas: listas (${trampas.length}/8)`;
+            } else {
+                const ralentizado = jugadorLocal?.ralentizado;
+
+                estadoTrampa.textContent = ralentizado
+                    ? "⚠️ Estás ralentizado"
+                    : "Evitá las trampas";
+            }
+        }
+
+        // =========================================
+        // CÁMARA
+        // =========================================
+
+        function actualizarCamara() {
+            const anchoVista = cancha.clientWidth;
+
+            camaraX = miJugador.x - anchoVista / 2;
+
+            camaraX = Math.max(
+                0,
+                Math.min(ANCHO_MAPA - anchoVista, camaraX)
+            );
+
+            mundo.style.transform = `translateX(${-camaraX}px)`;
+        }
+
+        // =========================================
+        // COLOCAR TRAMPAS CON EL MOUSE
+        // =========================================
+
+        cancha.addEventListener("click", evento => {
             if (
-                miJugador.muerto ||
-                !partidaComenzada
+                !partidaComenzada ||
+                partidaTerminada ||
+                miRol !== "enemigo"
             ) {
                 return;
             }
+
+            if (Date.now() < cooldownHasta) {
+                mensajeJuego.textContent = "Todavía no podés colocar otra trampa.";
+                return;
+            }
+
+            const rect = cancha.getBoundingClientRect();
+
+            const xPantalla = evento.clientX - rect.left;
+            const yPantalla = evento.clientY - rect.top;
+
+            const xMundo = xPantalla + camaraX;
+            const yMundo = yPantalla;
+
+            if (
+                xMundo < 0 ||
+                xMundo > ANCHO_MAPA ||
+                yMundo < 0 ||
+                yMundo > ALTO_MAPA
+            ) {
+                return;
+            }
+
+            socket.emit("ponerTrampa", {
+                x: xMundo,
+                y: yMundo
+            });
+        });
+
+        // =========================================
+        // CONTROLES DEL JUGADOR
+        // =========================================
+
+        window.addEventListener("keydown", evento => {
+            const tecla = evento.key.toLowerCase();
+
+            if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(tecla)) {
+                evento.preventDefault();
+            }
+
+            teclas[tecla] = true;
+        });
+
+        window.addEventListener("keyup", evento => {
+            teclas[evento.key.toLowerCase()] = false;
+        });
+
+        window.addEventListener("blur", () => {
+            teclas = {};
+        });
+
+        // =========================================
+        // MOVIMIENTO
+        // =========================================
+
+        function estaMuertoLocal() {
+            const jugador = jugadores.find(j => j.id === miId);
+            return Boolean(jugador?.muerto);
+        }
+
+        function estaRalentizadoLocal() {
+            const jugador = jugadores.find(j => j.id === miId);
+            return Boolean(jugador?.ralentizado);
+        }
+
+        function moverJugador(delta) {
+            if (
+                !partidaComenzada ||
+                partidaTerminada ||
+                !miRol ||
+                estaMuertoLocal()
+            ) {
+                return;
+            }
+
+            let velocidad = miRol === "enemigo"
+                ? VELOCIDAD_ENEMIGO
+                : VELOCIDAD_ALIADO;
+
+            if (miRol === "aliado" && estaRalentizadoLocal()) {
+                velocidad *= MULTIPLICADOR_RALENTIZADO;
+            }
+
+            // Ajuste por duración del frame para mantener una velocidad estable.
+            const factor = Math.min(delta / 16.67, 2);
+            const paso = velocidad * factor;
 
             let dx = 0;
             let dy = 0;
 
-            if (
-                teclas["w"] ||
-                teclas["arrowup"]
-            ) {
-                dy -= 1;
+            if (teclas["w"] || teclas["arrowup"]) dy -= paso;
+            if (teclas["s"] || teclas["arrowdown"]) dy += paso;
+            if (teclas["a"] || teclas["arrowleft"]) dx -= paso;
+            if (teclas["d"] || teclas["arrowright"]) dx += paso;
+
+            // Evitar moverse más rápido en diagonal.
+            if (dx !== 0 && dy !== 0) {
+                dx *= Math.SQRT1_2;
+                dy *= Math.SQRT1_2;
             }
 
-            if (
-                teclas["s"] ||
-                teclas["arrowdown"]
-            ) {
-                dy += 1;
+            const nuevaX = Math.max(
+                RADIO_JUGADOR,
+                Math.min(ANCHO_MAPA - RADIO_JUGADOR, miJugador.x + dx)
+            );
+
+            const nuevaY = Math.max(
+                RADIO_JUGADOR,
+                Math.min(ALTO_MAPA - RADIO_JUGADOR, miJugador.y + dy)
+            );
+
+            if (nuevaX !== miJugador.x || nuevaY !== miJugador.y) {
+                miJugador.x = nuevaX;
+                miJugador.y = nuevaY;
+                solicitudMovimientoPendiente = true;
             }
-
-            if (
-                teclas["a"] ||
-                teclas["arrowleft"]
-            ) {
-                dx -= 1;
-            }
-
-            if (
-                teclas["d"] ||
-                teclas["arrowright"]
-            ) {
-                dx += 1;
-            }
-
-            if (
-                dx === 0 &&
-                dy === 0
-            ) {
-                enviarPosicionSiCorresponde();
-                return;
-            }
-
-            // Normalizar diagonal
-
-            const longitud =
-                Math.sqrt(
-                    dx * dx +
-                    dy * dy
-                );
-
-            dx /= longitud;
-            dy /= longitud;
-
-            let velocidad =
-                miRol === "enemigo"
-                    ? VELOCIDAD_ENEMIGO
-                    : VELOCIDAD_ALIADO;
-
-            // Ralentización
-
-            if (
-                Date.now() <
-                miJugador.ralentizadoHasta
-            ) {
-
-                velocidad *= 0.45;
-            }
-
-            /*
-             * velocidad está expresada aproximadamente
-             * en píxeles por frame a 60 FPS.
-             */
-
-            const factorFrame =
-                delta / 16.6667;
-
-            miJugador.x +=
-                dx *
-                velocidad *
-                factorFrame;
-
-            miJugador.y +=
-                dy *
-                velocidad *
-                factorFrame;
-
-            // --------------------------------------
-            // LÍMITES
-            // --------------------------------------
-
-            miJugador.x =
-                Math.max(
-                    20,
-                    Math.min(
-                        ANCHO_MAPA - 20,
-                        miJugador.x
-                    )
-                );
-
-            miJugador.y =
-                Math.max(
-                    20,
-                    Math.min(
-                        ALTO_MAPA - 20,
-                        miJugador.y
-                    )
-                );
-
-            enviarPosicionSiCorresponde();
         }
 
-        // ==========================================
-        // ENVIAR POSICIÓN
-        // ==========================================
-
-        function enviarPosicionSiCorresponde() {
-
-            const ahora =
-                performance.now();
-
+        function enviarPosicion(ahora) {
             if (
-                ahora - ultimoEnvio <
-                INTERVALO_ENVIO
+                !partidaComenzada ||
+                partidaTerminada ||
+                !solicitudMovimientoPendiente ||
+                ahora - ultimoEnvio < 50
             ) {
                 return;
             }
 
             ultimoEnvio = ahora;
+            solicitudMovimientoPendiente = false;
 
-            socket.emit(
-                "moverJugador",
-                {
-                    x: miJugador.x,
-                    y: miJugador.y
-                }
-            );
+            socket.emit("moverJugador", {
+                x: miJugador.x,
+                y: miJugador.y
+            });
         }
 
-        // ==========================================
-        // INTERPOLACIÓN
-        // ==========================================
+        // =========================================
+        // BUCLE PRINCIPAL
+        // =========================================
 
-        function interpolarJugadores() {
+        function bucle(ahora) {
+            const delta = ultimoTiempo
+                ? Math.min(ahora - ultimoTiempo, 40)
+                : 16.67;
 
-            for (
-                const id in jugadores
-            ) {
+            ultimoTiempo = ahora;
 
-                if (id === miId) {
-                    continue;
-                }
+            moverJugador(delta);
+            enviarPosicion(ahora);
+            actualizarCamara();
+            actualizarHUD();
 
-                const jugador =
-                    jugadores[id];
-
-                if (
-                    jugador.renderX === undefined
-                ) {
-
-                    jugador.renderX =
-                        jugador.objetivoX;
-
-                    jugador.renderY =
-                        jugador.objetivoY;
-                }
-
-                /*
-                 * Interpolación exponencial.
-                 *
-                 * Esto hace que los jugadores remotos
-                 * se desplacen suavemente aunque el
-                 * servidor mande actualizaciones cada 50 ms.
-                 */
-
-                const factor = 0.25;
-
-                jugador.renderX +=
-                    (
-                        jugador.objetivoX -
-                        jugador.renderX
-                    ) *
-                    factor;
-
-                jugador.renderY +=
-                    (
-                        jugador.objetivoY -
-                        jugador.renderY
-                    ) *
-                    factor;
-            }
+            requestAnimationFrame(bucle);
         }
 
-        // ==========================================
-        // CÁMARA
-        // ==========================================
-
-        function actualizarCamara() {
-
-            const centroJugador =
-                miJugador.x;
-
-            camaraX =
-                centroJugador -
-                ANCHO_PANTALLA / 2;
-
-            camaraX =
-                Math.max(
-                    0,
-                    Math.min(
-                        ANCHO_MAPA -
-                        ANCHO_PANTALLA,
-                        camaraX
-                    )
-                );
-
-            mundo.style.transform =
-                `translate3d(${-camaraX}px, 0, 0)`;
-        }
-
-        // ==========================================
-        // RENDERIZAR JUGADORES
-        // ==========================================
-
-        function renderizarJugadores() {
-
-            // --------------------------------------
-            // JUGADOR LOCAL
-            // --------------------------------------
-
-            renderizarJugador(
-                miId,
-                {
-                    id: miId,
-                    nombre: "Tú",
-                    rol: miRol,
-                    x: miJugador.x,
-                    y: miJugador.y,
-                    muerto: miJugador.muerto,
-                    ralentizadoHasta:
-                        miJugador.ralentizadoHasta
-                },
-                true
-            );
-
-            // --------------------------------------
-            // JUGADORES REMOTOS
-            // --------------------------------------
-
-            for (
-                const id in jugadores
-            ) {
-
-                if (id === miId) {
-                    continue;
-                }
-
-                const jugador =
-                    jugadores[id];
-
-                renderizarJugador(
-                    id,
-                    {
-                        ...jugador,
-                        x: jugador.renderX,
-                        y: jugador.renderY
-                    },
-                    false
-                );
-            }
-        }
-
-        function renderizarJugador(
-            id,
-            jugador,
-            local
-        ) {
-
-            let elemento =
-                document.getElementById(
-                    `jugador-${id}`
-                );
-
-            if (!elemento) {
-
-                elemento =
-                    document.createElement(
-                        "div"
-                    );
-
-                elemento.id =
-                    `jugador-${id}`;
-
-                elemento.classList.add(
-                    "jugador"
-                );
-
-                mundo.appendChild(
-                    elemento
-                );
-            }
-
-            elemento.className =
-                "jugador " +
-                jugador.rol;
-
-            if (local) {
-                elemento.classList.add(
-                    "local"
-                );
-            }
-
-            if (jugador.muerto) {
-
-                elemento.classList.add(
-                    "muerto"
-                );
-            }
-
-            if (
-                Date.now() <
-                jugador.ralentizadoHasta
-            ) {
-
-                elemento.classList.add(
-                    "ralentizado"
-                );
-            }
-
-            elemento.textContent =
-                local
-                    ? "TÚ"
-                    : (
-                        jugador.nombre ||
-                        jugador.rol
-                    );
-
-            elemento.style.left =
-                `${jugador.x}px`;
-
-            elemento.style.top =
-                `${jugador.y}px`;
-        }
-
-        // ==========================================
-        // TRAMPAS
-        // ==========================================
-
-        function crearTrampaVisual(
-            trampa
-        ) {
-
-            const elemento =
-                document.createElement(
-                    "div"
-                );
-
-            elemento.id =
-                `trampa-${trampa.id}`;
-
-            elemento.className =
-                "trampa";
-
-            mundo.appendChild(
-                elemento
-            );
-
-            elemento.style.left =
-                `${trampa.x}px`;
-
-            elemento.style.top =
-                `${trampa.y}px`;
-        }
-
-        function renderizarTrampas() {
-
-            for (
-                const id in trampas
-            ) {
-
-                const trampa =
-                    trampas[id];
-
-                const elemento =
-                    document.getElementById(
-                        `trampa-${id}`
-                    );
-
-                if (!elemento) {
-                    continue;
-                }
-
-                elemento.style.left =
-                    `${trampa.x}px`;
-
-                elemento.style.top =
-                    `${trampa.y}px`;
-            }
-        }
-
-        // ==========================================
-        // CLICK PARA TRAMPA
-        // ==========================================
-
-        cancha.addEventListener(
-            "click",
-            event => {
-
-                if (
-                    !partidaComenzada ||
-                    miRol !== "enemigo" ||
-                    miJugador.muerto
-                ) {
-                    return;
-                }
-
-                if (
-                    Date.now() <
-                    cooldownTrampaHasta
-                ) {
-                    return;
-                }
-
-                const rect =
-                    cancha.getBoundingClientRect();
-
-                const pantallaX =
-                    event.clientX -
-                    rect.left;
-
-                const pantallaY =
-                    event.clientY -
-                    rect.top;
-
-                const mundoX =
-                    pantallaX +
-                    camaraX;
-
-                const mundoY =
-                    pantallaY;
-
-                socket.emit(
-                    "colocarTrampa",
-                    {
-                        x: mundoX,
-                        y: mundoY
-                    }
-                );
-            }
-        );
-
-        // ==========================================
-        // COOLDOWN TRAMPA
-        // ==========================================
-
-        socket.on(
-            "trampaCooldown",
-            duracion => {
-
-                cooldownTrampaHasta =
-                    Date.now() +
-                    duracion;
-
-                actualizarHUD();
-            }
-        );
-
-        // ==========================================
-        // TRAMPA ACTIVADA
-        // ==========================================
-
-        socket.on(
-            "trampaActivada",
-            datos => {
-
-                const elemento =
-                    document.getElementById(
-                        `trampa-${datos.trampaId}`
-                    );
-
-                if (elemento) {
-
-                    elemento.remove();
-                }
-
-                delete trampas[
-                    datos.trampaId
-                ];
-            }
-        );
-
-        // ==========================================
-        // RALENTIZADO
-        // ==========================================
-
-        socket.on(
-            "aliadoRalentizado",
-            datos => {
-
-                miJugador.ralentizadoHasta =
-                    Date.now() +
-                    datos.duracion;
-            }
-        );
-
-        // ==========================================
-        // VICTORIA ALIADOS
-        // ==========================================
-
-        socket.on(
-            "aliadosGanan",
-            datos => {
-
-                partidaComenzada =
-                    false;
-
-                mostrarMensaje(
-                    "¡LOS ALIADOS GANAN!"
-                );
-            }
-        );
-
-        // ==========================================
-        // VICTORIA ENEMIGO
-        // ==========================================
-
-        socket.on(
-            "enemigoGana",
-            () => {
-
-                partidaComenzada =
-                    false;
-
-                mostrarMensaje(
-                    "¡EL ENEMIGO GANA!"
-                );
-            }
-        );
-
-        // ==========================================
-        // DESCONEXIÓN
-        // ==========================================
-
-        socket.on(
-            "jugadorDesconectado",
-            () => {
-
-                mostrarMensaje(
-                    "Un jugador se desconectó."
-                );
-
-                partidaComenzada =
-                    false;
-            }
-        );
-
-        // ==========================================
-        // HUD
-        // ==========================================
-
-        function actualizarHUD() {
-
-            hudRol.textContent =
-                miRol || "-";
-
-            let aliadosVivos = 0;
-
-            for (
-                const id in jugadores
-            ) {
-
-                const jugador =
-                    jugadores[id];
-
-                if (
-                    jugador.rol === "aliado" &&
-                    !jugador.muerto
-                ) {
-
-                    aliadosVivos++;
-                }
-            }
-
-            if (
-                miRol === "aliado" &&
-                !miJugador.muerto
-            ) {
-
-                aliadosVivos++;
-            }
-
-            // Evitar contar al jugador local
-            // dos veces si está dentro de jugadores.
-
-            if (
-                miRol === "aliado" &&
-                jugadores[miId] &&
-                !jugadores[miId].muerto
-            ) {
-
-                aliadosVivos--;
-            }
-
-            hudAliados.textContent =
-                `${aliadosVivos}`;
-
-            const progreso =
-                Math.max(
-                    0,
-                    Math.min(
-                        100,
-                        (
-                            miJugador.x /
-                            META_X
-                        ) *
-                        100
-                    )
-                );
-
-            hudProgreso.textContent =
-                `${Math.round(progreso)}%`;
-
-            if (
-                miRol === "enemigo"
-            ) {
-
-                ayudaTrampa.style.display =
-                    "block";
-
-                const restante =
-                    cooldownTrampaHasta -
-                    Date.now();
-
-                if (restante > 0) {
-
-                    hudCooldown.textContent =
-                        `${(
-                            restante / 1000
-                        ).toFixed(1)} s`;
-
-                } else {
-
-                    hudCooldown.textContent =
-                        "Lista";
-                }
-
-            } else {
-
-                ayudaTrampa.style.display =
-                    "none";
-
-                hudCooldown.textContent =
-                    "-";
-            }
-        }
-
-        // ==========================================
-        // MENSAJES
-        // ==========================================
-
-        function mostrarMensaje(
-            texto,
-            duracion = 0
-        ) {
-
-            mensaje.textContent =
-                texto;
-
-            mensaje.style.display =
-                "block";
-
-            if (duracion > 0) {
-
-                setTimeout(
-                    () => {
-
-                        mensaje.style.display =
-                            "none";
-
-                    },
-                    duracion
-                );
-            }
-        }
-
-        // ==========================================
-        // DISTANCIA
-        // ==========================================
-
-        function distancia(
-            x1,
-            y1,
-            x2,
-            y2
-        ) {
-
-            const dx =
-                x1 - x2;
-
-            const dy =
-                y1 - y2;
-
-            return Math.sqrt(
-                dx * dx +
-                dy * dy
-            );
-        }
-
+        requestAnimationFrame(bucle);
     </script>
-
 </body>
-
 </html>

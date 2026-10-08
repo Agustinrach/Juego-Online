@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carrera contra el enemigo</title>
+    <title>Juego Online</title>
 
     <style>
         * {
@@ -12,1051 +13,483 @@
 
         body {
             margin: 0;
-            min-height: 100vh;
+            background: #20232a;
+            color: white;
             font-family: Arial, sans-serif;
-            background: #10151e;
-            color: #f4f6fa;
+            text-align: center;
         }
 
-        button, input {
-            font: inherit;
+        #menu,
+        #seleccionRol {
+            width: 400px;
+            max-width: 90%;
+            margin: 50px auto;
+            background: #2c3038;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        #seleccionRol,
+        #juego {
+            display: none;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
         }
 
         button {
-            padding: 11px 16px;
-            border: 0;
-            border-radius: 8px;
+            background: #4caf50;
+            color: white;
             cursor: pointer;
-            font-weight: bold;
         }
 
-        button:disabled {
-            cursor: not-allowed;
-            opacity: 0.4;
+        button:hover {
+            background: #45a049;
         }
 
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #4b5563;
-            border-radius: 8px;
-            color: white;
-            background: #1c2533;
-            margin: 8px 0;
-        }
-
-        .pantalla {
-            width: min(700px, 92%);
-            margin: 45px auto;
-            padding: 25px;
-            background: #1b2431;
-            border: 1px solid #344154;
-            border-radius: 16px;
-        }
-
-        h1, h2 {
-            margin-top: 0;
-        }
-
-        .subtitulo {
-            color: #b6c3d4;
-            line-height: 1.5;
-        }
-
-        .fila {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 12px;
-        }
-
-        .fila button {
-            flex: 1;
-        }
-
-        .azul {
-            color: white;
-            background: #2475e8;
-        }
-
-        .rojo {
-            color: white;
-            background: #d83d4c;
-        }
-
-        .gris {
-            color: white;
-            background: #465469;
-        }
-
-        .estado {
-            min-height: 24px;
+        .rol {
+            padding: 15px;
             margin-top: 15px;
-            color: #f7d879;
-            line-height: 1.4;
+            border: 3px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
         }
 
-        .oculto {
-            display: none !important;
+        .rol:hover {
+            border-color: white;
         }
 
-        #juego {
-            width: min(1200px, 96%);
-            margin: 18px auto;
+        #botonAliado {
+            background: #2980b9;
         }
 
-        .barra-superior {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
+        #botonEnemigo {
+            background: #c0392b;
         }
 
-        .tarjeta {
-            background: #1b2431;
-            border: 1px solid #344154;
-            padding: 12px 15px;
-            border-radius: 10px;
+        #botonEnemigo:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
-        #instrucciones {
-            margin: 10px 0;
-            color: #cbd5e1;
-            line-height: 1.5;
+        #estadoRoles {
+            margin-top: 20px;
+            line-height: 1.8;
         }
 
-        #progresoFondo {
-            height: 12px;
-            width: 100%;
-            background: #303b4c;
-            overflow: hidden;
-            border-radius: 20px;
-            margin-top: 8px;
+        #mensaje,
+        #mensajeRol {
+            color: #ffd166;
+            margin-top: 15px;
         }
 
-        #progreso {
-            width: 0%;
-            height: 100%;
-            background: #35ce85;
-            transition: width 0.1s linear;
+        #informacion {
+            padding: 10px;
         }
 
         #cancha {
+            width: 800px;
+            height: 500px;
+            max-width: 95vw;
+            margin: auto;
+            background: #6ab04c;
+            border: 5px solid white;
             position: relative;
-            width: 100%;
-            height: min(600px, 65vh);
-            min-height: 340px;
             overflow: hidden;
-            border: 3px solid #536274;
-            border-radius: 10px;
-            background: #203b31;
             touch-action: none;
-            user-select: none;
-        }
-
-        #mundo {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 5000px;
-            height: 600px;
-            transform: translateX(0);
-            background-color: #315b42;
-            background-image:
-                repeating-linear-gradient(
-                    0deg,
-                    transparent 0px,
-                    transparent 48px,
-                    rgba(255,255,255,0.06) 49px,
-                    rgba(255,255,255,0.06) 50px
-                ),
-                repeating-linear-gradient(
-                    90deg,
-                    rgba(255,255,255,0.025) 0px,
-                    rgba(255,255,255,0.025) 49px,
-                    transparent 50px,
-                    transparent 100px
-                );
-        }
-
-        .linea {
-            position: absolute;
-            top: 0;
-            height: 600px;
-            width: 6px;
-            z-index: 1;
-        }
-
-        #salida {
-            left: 140px;
-            background: #e5e7eb;
-        }
-
-        #meta {
-            left: 4800px;
-            width: 12px;
-            background: repeating-linear-gradient(
-                0deg,
-                #fff 0px,
-                #fff 18px,
-                #111 18px,
-                #111 36px
-            );
-        }
-
-        .etiquetaLinea {
-            position: absolute;
-            top: 12px;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            text-shadow: 1px 1px 3px black;
-            white-space: nowrap;
         }
 
         .jugador {
-            position: absolute;
             width: 40px;
             height: 40px;
-            border: 3px solid white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            transform: translate(-50%, -50%);
-            z-index: 4;
-            box-shadow: 0 2px 8px #0007;
-        }
-
-        .jugador.aliado {
-            background: #2176f3;
-        }
-
-        .jugador.enemigo {
-            background: #e33d4d;
-            border-radius: 10px;
-        }
-
-        .jugador.muerto {
-            background: #646b75;
-            border-color: #a4aab2;
-            opacity: 0.65;
-        }
-
-        .jugador.ralentizado {
-            box-shadow: 0 0 0 6px #ffdb4d88, 0 2px 8px #0007;
-        }
-
-        .jugador.yo {
-            outline: 3px solid white;
-            outline-offset: 3px;
-        }
-
-        .trampa {
             position: absolute;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transform: translate(-50%, -50%);
-            background: #242424;
-            border: 3px solid #ffda4d;
+            left: 0;
+            top: 0;
             border-radius: 50%;
+            transform: translate(-50%, -50%);
+            will-change: left, top;
+        }
+
+        .aliado {
+            background: #3498db;
+        }
+
+        .enemigo {
+            background: #e74c3c;
+        }
+
+        .muerto {
+            background: #777 !important;
+            opacity: 0.7;
+        }
+
+        #mensajeJuego {
             font-size: 22px;
-            z-index: 3;
-            box-shadow: 0 0 12px #0008;
-        }
-
-        #avisoFinal {
-            padding: 18px;
-            border: 1px solid #64748b;
-            border-radius: 10px;
-            margin-top: 12px;
-            text-align: center;
-            font-size: 20px;
             font-weight: bold;
-            background: #1b2431;
-        }
-
-        .pequeno {
-            color: #aebdd0;
-            font-size: 13px;
-        }
-
-        @media (max-width: 600px) {
-            .pantalla {
-                padding: 18px;
-                margin: 20px auto;
-            }
-
-            #juego {
-                width: 98%;
-            }
-
-            #cancha {
-                min-height: 300px;
-            }
+            min-height: 32px;
+            color: #ffd166;
         }
     </style>
 </head>
 
 <body>
+    <div id="menu">
+        <h1>🎮 Juego Online</h1>
 
-    <!-- MENÚ -->
-    <section id="menu" class="pantalla">
-        <h1>🏁 Carrera contra el enemigo</h1>
+        <h2>Crear sala</h2>
+        <button id="crearSala">Crear sala</button>
 
-        <p class="subtitulo">
-            Tres aliados deben llegar a la meta. Un enemigo más lento
-            intentará alcanzarlos y colocar trampas para retrasarlos.
-        </p>
+        <hr>
 
-        <div class="fila">
-            <button id="crearSala" class="azul">Crear partida</button>
-        </div>
-
-        <h3>Unirse a una partida</h3>
+        <h2>Unirse</h2>
         <input
+            type="text"
             id="codigoInput"
             maxlength="5"
             placeholder="Código de sala"
-            autocomplete="off"
         >
+        <button id="unirseSala">Unirse a sala</button>
 
-        <div class="fila">
-            <button id="unirseSala" class="gris">Unirse</button>
+        <p id="mensaje"></p>
+    </div>
+
+    <div id="seleccionRol">
+        <h1>⚔️ Elegí tu equipo</h1>
+
+        <p>Sala: <strong id="codigoSalaRol"></strong></p>
+
+        <div id="botonAliado" class="rol">
+            🔵
+            <h2>ALIADO</h2>
+            <p>Tu objetivo es sobrevivir.</p>
         </div>
 
-        <div id="mensaje" class="estado"></div>
-    </section>
-
-    <!-- ELECCIÓN DE ROL -->
-    <section id="seleccionRol" class="pantalla oculto">
-        <h2>Elegí tu rol</h2>
-
-        <p>Código de sala: <strong id="codigoSalaRol"></strong></p>
-        <p id="estadoSala" class="subtitulo">
-            Esperando a que se unan los jugadores...
-        </p>
-
-        <div class="fila">
-            <button id="botonAliado" class="azul">
-                🏃 Ser aliado
-            </button>
-
-            <button id="botonEnemigo" class="rojo">
-                👹 Ser enemigo
-            </button>
+        <div id="botonEnemigo" class="rol">
+            🔴
+            <h2>ENEMIGO</h2>
+            <p>Tocá a los 3 aliados.</p>
         </div>
 
-        <p id="rolElegido" class="estado">Todavía no elegiste un rol.</p>
-
-        <p>
-            Aliados elegidos:
-            <strong id="cantidadAliados">0</strong> / 3
-        </p>
-
-        <p>
-            Enemigo:
-            <strong id="estadoEnemigo">Disponible</strong>
-        </p>
-
-        <p>
-            Jugadores conectados:
-            <strong id="cantidadJugadores">1</strong> / 4
-        </p>
-
-        <div id="mensajeRol" class="estado">
-            La partida comienza automáticamente cuando estén los cuatro jugadores.
-        </div>
-    </section>
-
-    <!-- JUEGO -->
-    <main id="juego" class="oculto">
-
-        <div class="barra-superior">
-            <div class="tarjeta">
-                Sala: <strong id="codigoSala"></strong>
-                <br>
-                Rol: <strong id="miRolTexto"></strong>
-            </div>
-
-            <div class="tarjeta">
-                Aliados vivos:
-                <strong id="aliadosVivos">3</strong> / 3
-            </div>
-
-            <div class="tarjeta">
-                <span id="estadoTrampa">Trampas disponibles</span>
-            </div>
+        <div id="estadoRoles">
+            🔵 Aliados: <span id="cantidadAliados">0</span>/3
+            <br>
+            🔴 Enemigo: <span id="estadoEnemigo">Disponible</span>
         </div>
 
-        <div class="tarjeta">
-            <div class="barra-superior">
-                <strong>Progreso hacia la meta</strong>
-                <span id="porcentaje">0%</span>
-            </div>
+        <div id="rolElegido">No elegiste un equipo.</div>
+        <p id="mensajeRol"></p>
+    </div>
 
-            <div id="progresoFondo">
-                <div id="progreso"></div>
-            </div>
+    <div id="juego">
+        <div id="informacion">
+            <h2>Sala: <span id="codigoSala"></span></h2>
+            <p>Jugadores: <span id="cantidadJugadores">0</span>/4</p>
+            <p>Usá W A S D para moverte.</p>
+            <div id="mensajeJuego"></div>
         </div>
 
-        <p id="instrucciones"></p>
-
-        <div id="cancha">
-            <div id="mundo">
-                <div id="salida" class="linea">
-                    <span class="etiquetaLinea">SALIDA</span>
-                </div>
-
-                <div id="meta" class="linea">
-                    <span class="etiquetaLinea">META</span>
-                </div>
-            </div>
-        </div>
-
-        <div id="avisoFinal" class="oculto"></div>
-        <div id="mensajeJuego" class="estado"></div>
-    </main>
+        <div id="cancha"></div>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
-
     <script>
-        // =========================================
-        // CONEXIÓN Y CONSTANTES
-        // =========================================
-
         const socket = io();
-
-        const ANCHO_MAPA = 5000;
-        const ALTO_MAPA = 600;
-        const META_X = 4800;
-
-        const RADIO_JUGADOR = 20;
-        const VELOCIDAD_ALIADO = 5;
-        const VELOCIDAD_ENEMIGO = 3.5;
-        const MULTIPLICADOR_RALENTIZADO = 0.45;
-
-        const COOLDOWN_TRAMPA = 3000;
-
-        // =========================================
-        // ELEMENTOS HTML
-        // =========================================
 
         const menu = document.getElementById("menu");
         const seleccionRol = document.getElementById("seleccionRol");
         const juego = document.getElementById("juego");
-
         const crearSala = document.getElementById("crearSala");
         const unirseSala = document.getElementById("unirseSala");
         const codigoInput = document.getElementById("codigoInput");
-
-        const mensaje = document.getElementById("mensaje");
-        const mensajeRol = document.getElementById("mensajeRol");
-        const mensajeJuego = document.getElementById("mensajeJuego");
-
         const codigoSalaRol = document.getElementById("codigoSalaRol");
         const codigoSala = document.getElementById("codigoSala");
         const cantidadJugadores = document.getElementById("cantidadJugadores");
-        const cantidadAliados = document.getElementById("cantidadAliados");
-        const estadoEnemigo = document.getElementById("estadoEnemigo");
-        const estadoSala = document.getElementById("estadoSala");
-        const rolElegido = document.getElementById("rolElegido");
-
         const botonAliado = document.getElementById("botonAliado");
         const botonEnemigo = document.getElementById("botonEnemigo");
-
+        const cantidadAliados = document.getElementById("cantidadAliados");
+        const estadoEnemigo = document.getElementById("estadoEnemigo");
+        const rolElegido = document.getElementById("rolElegido");
+        const mensaje = document.getElementById("mensaje");
+        const mensajeRol = document.getElementById("mensajeRol");
+        const mensajeJuego = document.getElementById("mensajeJuego");
         const cancha = document.getElementById("cancha");
-        const mundo = document.getElementById("mundo");
-
-        const miRolTexto = document.getElementById("miRolTexto");
-        const aliadosVivosElemento = document.getElementById("aliadosVivos");
-        const estadoTrampa = document.getElementById("estadoTrampa");
-
-        const progreso = document.getElementById("progreso");
-        const porcentaje = document.getElementById("porcentaje");
-
-        const instrucciones = document.getElementById("instrucciones");
-        const avisoFinal = document.getElementById("avisoFinal");
-
-        // =========================================
-        // ESTADO
-        // =========================================
 
         let miId = null;
         let miRol = null;
-        let miSala = null;
-
-        let jugadores = [];
-        let trampas = [];
-
-        let miJugador = {
-            x: 160,
-            y: ALTO_MAPA / 2
-        };
-
-        let teclas = {};
-        let camaraX = 0;
-
+        let miJugador = { x: 100, y: 250 };
         let partidaComenzada = false;
-        let partidaTerminada = false;
-
-        let ultimoEnvio = 0;
+        let teclas = {};
+        let jugadores = [];
         let ultimoTiempo = 0;
-        let cooldownHasta = 0;
-
-        let solicitudMovimientoPendiente = false;
-        let mensajeTrampaHasta = 0;
+        let ultimoEnvio = 0;
+        let posicionLocalInicializada = false;
 
         const elementosJugadores = new Map();
-        const elementosTrampas = new Map();
 
-        // =========================================
-        // FUNCIONES DE INTERFAZ
-        // =========================================
+        // ------------------------------------
+        // CONEXIÓN
+        // ------------------------------------
 
-        function mostrarPantalla(pantalla) {
-            menu.classList.add("oculto");
-            seleccionRol.classList.add("oculto");
-            juego.classList.add("oculto");
+        socket.on("connect", () => {
+            miId = socket.id;
+            console.log("Conectado:", miId);
+        });
 
-            pantalla.classList.remove("oculto");
-        }
+        socket.on("connect_error", error => {
+            mensaje.textContent = "No se pudo conectar al servidor.";
+            console.error(error);
+        });
 
-        function mostrarError(texto) {
-            mensaje.textContent = texto;
-            mensajeRol.textContent = texto;
-            mensajeJuego.textContent = texto;
-        }
-
-        function entrarEnSala(codigo) {
-            miSala = codigo;
-            codigoSala.textContent = codigo;
-            codigoSalaRol.textContent = codigo;
-
-            mostrarPantalla(seleccionRol);
-
-            mensajeRol.textContent =
-                "Elegí tu rol. La partida necesita tres aliados y un enemigo.";
-        }
-
-        function actualizarEstadoRoles(datos) {
-            cantidadAliados.textContent = datos.aliados ?? 0;
-            cantidadJugadores.textContent = datos.jugadores ?? 0;
-
-            const enemigoElegido =
-                datos.enemigo === true || (datos.enemigos ?? 0) > 0;
-
-            estadoEnemigo.textContent =
-                enemigoElegido ? "Ya elegido" : "Disponible";
-
-            botonEnemigo.disabled =
-                enemigoElegido && miRol !== "enemigo";
-
-            if (miRol === "aliado") botonAliado.disabled = true;
-            if (miRol === "enemigo") botonEnemigo.disabled = true;
-
-            estadoSala.textContent =
-                `${datos.jugadores ?? 0} de 4 jugadores conectados.`;
-
-            if (!partidaComenzada && !partidaTerminada) {
-                mensajeRol.textContent =
-                    `Roles elegidos: ${datos.aliados ?? 0} aliados y ` +
-                    `${datos.enemigos ?? (enemigoElegido ? 1 : 0)} enemigo(s).`;
-            }
-        }
-
-        // =========================================
-        // CREAR / UNIRSE A UNA SALA
-        // =========================================
+        // ------------------------------------
+        // SALAS
+        // ------------------------------------
 
         crearSala.addEventListener("click", () => {
-            mensaje.textContent = "Creando sala...";
             socket.emit("crearSala");
         });
 
         unirseSala.addEventListener("click", () => {
             const codigo = codigoInput.value.trim().toUpperCase();
 
-            if (codigo.length !== 5) {
-                mensaje.textContent = "Ingresá un código de 5 caracteres.";
+            if (!codigo) {
+                mensaje.textContent = "Escribí un código.";
                 return;
             }
 
-            mensaje.textContent = "Intentando unirse...";
             socket.emit("unirseSala", codigo);
         });
 
-        codigoInput.addEventListener("keydown", evento => {
-            if (evento.key === "Enter") unirseSala.click();
+        socket.on("salaCreada", datos => {
+            menu.style.display = "none";
+            seleccionRol.style.display = "block";
+            codigoSalaRol.textContent = datos.codigo;
+            codigoSala.textContent = datos.codigo;
+            mensaje.textContent = "";
+            mensajeRol.textContent = "";
+            rolElegido.textContent = "Elegí tu equipo.";
         });
 
+        socket.on("errorSala", texto => {
+            mensaje.textContent = texto;
+        });
+
+        // ------------------------------------
+        // ELEGIR ROL
+        // ------------------------------------
+
         botonAliado.addEventListener("click", () => {
-            if (!miSala || partidaComenzada) return;
             socket.emit("elegirRol", "aliado");
         });
 
         botonEnemigo.addEventListener("click", () => {
-            if (!miSala || partidaComenzada) return;
-            socket.emit("elegirRol", "enemigo");
+            if (!botonEnemigo.disabled) {
+                socket.emit("elegirRol", "enemigo");
+            }
         });
 
-        // =========================================
-        // SOCKET.IO
-        // =========================================
-
-        socket.on("connect", () => {
-            miId = socket.id;
-        });
-
-        socket.on("salaCreada", codigo => {
-            entrarEnSala(codigo);
-        });
-
-        socket.on("salaUnida", codigo => {
-            entrarEnSala(codigo);
-        });
-
-        socket.on("errorJuego", texto => {
-            mostrarError(texto);
-        });
-
-        socket.on("rolElegido", rol => {
-            miRol = rol;
-
-            rolElegido.textContent =
-                rol === "aliado"
-                    ? "Elegiste ser aliado. ¡Corré hasta la meta!"
-                    : "Elegiste ser enemigo. Hacé clic en el mapa para poner trampas.";
-
-            botonAliado.disabled = rol === "aliado";
-            botonEnemigo.disabled = rol === "enemigo";
+        socket.on("errorRol", texto => {
+            mensajeRol.textContent = texto;
         });
 
         socket.on("actualizarRoles", datos => {
-            actualizarEstadoRoles(datos);
+            cantidadAliados.textContent = datos.aliados;
+
+            if (datos.enemigo) {
+                estadoEnemigo.textContent = "Ocupado";
+                botonEnemigo.disabled = true;
+            } else {
+                estadoEnemigo.textContent = "Disponible";
+                botonEnemigo.disabled = false;
+            }
+
+            if (miRol) {
+                rolElegido.textContent =
+                    miRol === "aliado"
+                        ? "Elegiste ser ALIADO."
+                        : "Elegiste ser el ENEMIGO.";
+            }
         });
 
-        socket.on("partidaIniciada", datos => {
+        // ------------------------------------
+        // CUENTA REGRESIVA
+        // ------------------------------------
+
+        socket.on("cuentaRegresiva", segundos => {
+            menu.style.display = "none";
+            seleccionRol.style.display = "none";
+            juego.style.display = "block";
+
+            partidaComenzada = false;
+            teclas = {};
+
+            mensajeJuego.textContent =
+                `La partida comienza en ${segundos}...`;
+
+            mensajeJuego.style.color = "#f7d879";
+        });
+
+        socket.on("cuentaRegresivaCancelada", () => {
+            partidaComenzada = false;
+            teclas = {};
+            juego.style.display = "none";
+            seleccionRol.style.display = "block";
+            mensajeRol.textContent =
+                "Se canceló la cuenta regresiva: falta un jugador o un rol.";
+        });
+
+        // ------------------------------------
+        // PARTIDA INICIADA
+        // ------------------------------------
+
+        socket.on("partidaIniciada", () => {
             partidaComenzada = true;
-            partidaTerminada = false;
+            posicionLocalInicializada = false;
+            ultimoEnvio = 0;
+            ultimoTiempo = 0;
+            teclas = {};
 
-            jugadores = [];
-            trampas = [];
-
-            if (datos) {
-                mundo.style.width = datos.anchoMapa + "px";
-                mundo.style.height = datos.altoMapa + "px";
-            }
-
-            miJugador = {
-                x: 160,
-                y: ALTO_MAPA / 2
-            };
-
-            mostrarPantalla(juego);
-
-            miRolTexto.textContent =
-                miRol === "enemigo" ? "👹 Enemigo" : "🏃 Aliado";
-
-            if (miRol === "enemigo") {
-                instrucciones.textContent =
-                    "Sos el enemigo. Sos más lento: hacé clic en el mapa para colocar trampas. " +
-                    "Las trampas ralentizan a los aliados durante 4 segundos.";
-                cancha.style.cursor = "crosshair";
-            } else {
-                instrucciones.textContent =
-                    "Sos un aliado. Movete con W, A, S y D para llegar a la meta. " +
-                    "Evitá al enemigo y las trampas amarillas.";
-                cancha.style.cursor = "default";
-            }
+            seleccionRol.style.display = "none";
+            juego.style.display = "block";
 
             mensajeJuego.textContent = "¡La partida comenzó!";
-            avisoFinal.classList.add("oculto");
-            teclas = {};
+            mensajeJuego.style.color = "#ffd166";
         });
 
-        socket.on("actualizarJugadores", lista => {
-            if (!Array.isArray(lista)) return;
+        socket.on("partidaCancelada", texto => {
+            partidaComenzada = false;
+            teclas = {};
+            mensajeJuego.textContent = texto;
+        });
 
+        // ------------------------------------
+        // ACTUALIZAR JUGADORES
+        // ------------------------------------
+
+        socket.on("actualizarJugadores", lista => {
             jugadores = lista;
+            cantidadJugadores.textContent = lista.length;
 
             const yo = lista.find(j => j.id === miId);
 
             if (yo) {
-                // Actualización de posición del servidor.
-                // El movimiento local se mantiene fluido, sin saltos hacia atrás.
-                if (!solicitudMovimientoPendiente) {
+                miRol = yo.rol;
+
+                if (!posicionLocalInicializada && partidaComenzada) {
                     miJugador.x = yo.x;
                     miJugador.y = yo.y;
+                    posicionLocalInicializada = true;
                 }
-
-                if (yo.rol) miRol = yo.rol;
             }
 
-            renderizarJugadores();
-            actualizarHUD();
+            mostrarJugadores();
         });
 
-        socket.on("actualizarTrampas", lista => {
-            trampas = Array.isArray(lista) ? lista : [];
-            renderizarTrampas();
-        });
-
-        socket.on("trampaActivada", datos => {
-            if (datos.jugadorId === miId) {
-                mensajeJuego.textContent =
-                    "¡Pisaste una trampa! Te movés más lento durante unos segundos.";
-
-                mensajeTrampaHasta = Date.now() + 4000;
-            }
-        });
-
-        socket.on("trampaCooldown", milisegundos => {
-            cooldownHasta = Date.now() + Math.max(0, milisegundos || 0);
-            actualizarHUD();
-        });
-
-        socket.on("aliadoMuerto", datos => {
-            if (datos.jugadorId === miId) {
-                teclas = {};
-                mensajeJuego.textContent =
-                    "El enemigo te atrapó. Ya no podés moverte.";
-            }
-        });
-
-        socket.on("partidaTerminada", datos => {
-            partidaTerminada = true;
-            partidaComenzada = false;
-            teclas = {};
-
-            avisoFinal.classList.remove("oculto");
-
-            if (datos.ganador === "aliados") {
-                avisoFinal.textContent = "🏁 ¡GANARON LOS ALIADOS!";
-                avisoFinal.style.color = "#55e69b";
-            } else {
-                avisoFinal.textContent = "👹 ¡GANÓ EL ENEMIGO!";
-                avisoFinal.style.color = "#ff707d";
-            }
-
-            mensajeJuego.textContent = datos.motivo || "";
-            cancha.style.cursor = "default";
-        });
-
-        socket.on("partidaCancelada", datos => {
-            partidaComenzada = false;
-            partidaTerminada = true;
-            teclas = {};
-
-            avisoFinal.classList.remove("oculto");
-            avisoFinal.textContent = "Partida cancelada";
-            mensajeJuego.textContent = datos.mensaje || "Un jugador se desconectó.";
-        });
-
-        // =========================================
-        // RENDERIZAR JUGADORES
-        // =========================================
-
-        function renderizarJugadores() {
-            const idsActivos = new Set();
+        function mostrarJugadores() {
+            const idsActuales = new Set();
 
             for (const jugador of jugadores) {
-                idsActivos.add(jugador.id);
+                idsActuales.add(jugador.id);
 
                 let elemento = elementosJugadores.get(jugador.id);
 
                 if (!elemento) {
                     elemento = document.createElement("div");
                     elemento.className = "jugador";
-
-                    mundo.appendChild(elemento);
+                    cancha.appendChild(elemento);
                     elementosJugadores.set(jugador.id, elemento);
+
+                    elemento.dataset.visualX = jugador.x;
+                    elemento.dataset.visualY = jugador.y;
                 }
 
-                elemento.className = "jugador";
+                elemento.id = "jugador-" + jugador.id;
+                elemento.classList.toggle("aliado", jugador.rol === "aliado");
+                elemento.classList.toggle("enemigo", jugador.rol === "enemigo");
+                elemento.classList.toggle("muerto", jugador.muerto);
 
-                if (jugador.rol === "aliado") {
-                    elemento.classList.add("aliado");
-                } else if (jugador.rol === "enemigo") {
-                    elemento.classList.add("enemigo");
-                }
-
-                if (jugador.muerto) {
-                    elemento.classList.add("muerto");
-                }
-
-                if (jugador.ralentizado) {
-                    elemento.classList.add("ralentizado");
-                }
+                elemento.dataset.targetX = jugador.x;
+                elemento.dataset.targetY = jugador.y;
 
                 if (jugador.id === miId) {
-                    elemento.classList.add("yo");
+                    miRol = jugador.rol;
                 }
-
-                elemento.textContent =
-                    jugador.id === miId
-                        ? "YO"
-                        : jugador.rol === "enemigo"
-                            ? "E"
-                            : "A";
-
-                elemento.style.left = jugador.x + "px";
-                elemento.style.top = jugador.y + "px";
-
-                elemento.title =
-                    (jugador.rol || "Sin rol") +
-                    (jugador.muerto ? " - eliminado" : "");
             }
 
-            for (const [id, elemento] of elementosJugadores.entries()) {
-                if (!idsActivos.has(id)) {
+            for (const [id, elemento] of elementosJugadores) {
+                if (!idsActuales.has(id)) {
                     elemento.remove();
                     elementosJugadores.delete(id);
                 }
             }
         }
 
-        // =========================================
-        // RENDERIZAR TRAMPAS
-        // =========================================
+        // ------------------------------------
+        // ALIADO ELIMINADO
+        // ------------------------------------
 
-        function renderizarTrampas() {
-            const idsActivos = new Set();
+        socket.on("aliadoMuerto", datos => {
+            const elemento = elementosJugadores.get(datos.id);
 
-            for (const trampa of trampas) {
-                idsActivos.add(trampa.id);
-
-                let elemento = elementosTrampas.get(trampa.id);
-
-                if (!elemento) {
-                    elemento = document.createElement("div");
-                    elemento.className = "trampa";
-                    elemento.textContent = "🪤";
-                    mundo.appendChild(elemento);
-
-                    elementosTrampas.set(trampa.id, elemento);
-                }
-
-                elemento.style.left = trampa.x + "px";
-                elemento.style.top = trampa.y + "px";
+            if (elemento) {
+                elemento.classList.add("muerto");
             }
 
-            for (const [id, elemento] of elementosTrampas.entries()) {
-                if (!idsActivos.has(id)) {
-                    elemento.remove();
-                    elementosTrampas.delete(id);
-                }
+            if (datos.id === miId) {
+                teclas = {};
+                mensajeJuego.textContent = "💀 ¡Fuiste eliminado!";
             }
-        }
-
-        // =========================================
-        // HUD
-        // =========================================
-
-        function actualizarHUD() {
-            const aliadosVivos = jugadores.filter(
-                j => j.rol === "aliado" && !j.muerto
-            ).length;
-
-            aliadosVivosElemento.textContent = aliadosVivos;
-
-            const jugadorLocal = jugadores.find(j => j.id === miId);
-
-            if (jugadorLocal && jugadorLocal.muerto) {
-                miJugador.x = jugadorLocal.x;
-                miJugador.y = jugadorLocal.y;
-            }
-
-            const porcentajeProgreso = Math.max(
-                0,
-                Math.min(100, (miJugador.x / META_X) * 100)
-            );
-
-            progreso.style.width = porcentajeProgreso + "%";
-            porcentaje.textContent = Math.floor(porcentajeProgreso) + "%";
-
-            if (miRol === "enemigo") {
-                const restante = Math.max(0, cooldownHasta - Date.now());
-
-                estadoTrampa.textContent = restante > 0
-                    ? `Próxima trampa: ${(restante / 1000).toFixed(1)} s`
-                    : `Trampas: listas (${trampas.length}/8)`;
-            } else {
-                const ralentizado = jugadorLocal?.ralentizado;
-
-                estadoTrampa.textContent = ralentizado
-                    ? "⚠️ Estás ralentizado"
-                    : "Evitá las trampas";
-            }
-        }
-
-        // =========================================
-        // CÁMARA
-        // =========================================
-
-        function actualizarCamara() {
-            const anchoVista = cancha.clientWidth;
-
-            camaraX = miJugador.x - anchoVista / 2;
-
-            camaraX = Math.max(
-                0,
-                Math.min(ANCHO_MAPA - anchoVista, camaraX)
-            );
-
-            mundo.style.transform = `translateX(${-camaraX}px)`;
-        }
-
-        // =========================================
-        // COLOCAR TRAMPAS CON EL MOUSE
-        // =========================================
-
-        cancha.addEventListener("click", evento => {
-            if (
-                !partidaComenzada ||
-                partidaTerminada ||
-                miRol !== "enemigo"
-            ) {
-                return;
-            }
-
-            if (Date.now() < cooldownHasta) {
-                mensajeJuego.textContent = "Todavía no podés colocar otra trampa.";
-                return;
-            }
-
-            const rect = cancha.getBoundingClientRect();
-
-            const xPantalla = evento.clientX - rect.left;
-            const yPantalla = evento.clientY - rect.top;
-
-            const xMundo = xPantalla + camaraX;
-            const yMundo = yPantalla;
-
-            if (
-                xMundo < 0 ||
-                xMundo > ANCHO_MAPA ||
-                yMundo < 0 ||
-                yMundo > ALTO_MAPA
-            ) {
-                return;
-            }
-
-            socket.emit("ponerTrampa", {
-                x: xMundo,
-                y: yMundo
-            });
         });
 
-        // =========================================
-        // CONTROLES DEL JUGADOR
-        // =========================================
+        socket.on("enemigoGana", () => {
+            partidaComenzada = false;
+            teclas = {};
+            mensajeJuego.textContent = "🔴 ¡EL ENEMIGO GANA!";
+        });
 
-        window.addEventListener("keydown", evento => {
+        // ------------------------------------
+        // TECLADO
+        // ------------------------------------
+
+        document.addEventListener("keydown", evento => {
             const tecla = evento.key.toLowerCase();
 
-            if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(tecla)) {
+            if (["w", "a", "s", "d"].includes(tecla)) {
                 evento.preventDefault();
-            }
 
-            teclas[tecla] = true;
+                if (partidaComenzada) {
+                    teclas[tecla] = true;
+                }
+            }
         });
 
-        window.addEventListener("keyup", evento => {
-            teclas[evento.key.toLowerCase()] = false;
+        document.addEventListener("keyup", evento => {
+            const tecla = evento.key.toLowerCase();
+
+            if (["w", "a", "s", "d"].includes(tecla)) {
+                teclas[tecla] = false;
+            }
         });
 
         window.addEventListener("blur", () => {
             teclas = {};
         });
 
-        // =========================================
-        // MOVIMIENTO
-        // =========================================
-
-        function estaMuertoLocal() {
-            const jugador = jugadores.find(j => j.id === miId);
-            return Boolean(jugador?.muerto);
-        }
-
-        function estaRalentizadoLocal() {
-            const jugador = jugadores.find(j => j.id === miId);
-            return Boolean(jugador?.ralentizado);
-        }
-
-        function moverJugador(delta) {
-            if (
-                !partidaComenzada ||
-                partidaTerminada ||
-                !miRol ||
-                estaMuertoLocal()
-            ) {
-                return;
-            }
-
-            let velocidad = miRol === "enemigo"
-                ? VELOCIDAD_ENEMIGO
-                : VELOCIDAD_ALIADO;
-
-            if (miRol === "aliado" && estaRalentizadoLocal()) {
-                velocidad *= MULTIPLICADOR_RALENTIZADO;
-            }
-
-            // Ajuste por duración del frame para mantener una velocidad estable.
-            const factor = Math.min(delta / 16.67, 2);
-            const paso = velocidad * factor;
-
-            let dx = 0;
-            let dy = 0;
-
-            if (teclas["w"] || teclas["arrowup"]) dy -= paso;
-            if (teclas["s"] || teclas["arrowdown"]) dy += paso;
-            if (teclas["a"] || teclas["arrowleft"]) dx -= paso;
-            if (teclas["d"] || teclas["arrowright"]) dx += paso;
-
-            // Evitar moverse más rápido en diagonal.
-            if (dx !== 0 && dy !== 0) {
-                dx *= Math.SQRT1_2;
-                dy *= Math.SQRT1_2;
-            }
-
-            const nuevaX = Math.max(
-                RADIO_JUGADOR,
-                Math.min(ANCHO_MAPA - RADIO_JUGADOR, miJugador.x + dx)
-            );
-
-            const nuevaY = Math.max(
-                RADIO_JUGADOR,
-                Math.min(ALTO_MAPA - RADIO_JUGADOR, miJugador.y + dy)
-            );
-
-            if (nuevaX !== miJugador.x || nuevaY !== miJugador.y) {
-                miJugador.x = nuevaX;
-                miJugador.y = nuevaY;
-                solicitudMovimientoPendiente = true;
-            }
-        }
+        // ------------------------------------
+        // ENVIAR POSICIÓN AL SERVIDOR
+        // ------------------------------------
 
         function enviarPosicion(ahora) {
-            if (
-                !partidaComenzada ||
-                partidaTerminada ||
-                !solicitudMovimientoPendiente ||
-                ahora - ultimoEnvio < 50
-            ) {
-                return;
-            }
+            if (ahora - ultimoEnvio < 40) return;
 
             ultimoEnvio = ahora;
-            solicitudMovimientoPendiente = false;
 
             socket.emit("moverJugador", {
                 x: miJugador.x,
@@ -1064,9 +497,72 @@
             });
         }
 
-        // =========================================
+        // ------------------------------------
+        // MOVIMIENTO SUAVE
+        // ------------------------------------
+
+        function actualizarMovimiento(delta) {
+            if (!partidaComenzada) return;
+
+            const velocidad = miRol === "enemigo" ? 180 : 240;
+            const segundos = delta / 1000;
+
+            let dx = 0;
+            let dy = 0;
+
+            if (teclas["a"]) dx--;
+            if (teclas["d"]) dx++;
+            if (teclas["w"]) dy--;
+            if (teclas["s"]) dy++;
+
+            // Evita que el movimiento diagonal sea más rápido.
+            if (dx !== 0 && dy !== 0) {
+                dx *= Math.SQRT1_2;
+                dy *= Math.SQRT1_2;
+            }
+
+            miJugador.x += dx * velocidad * segundos;
+            miJugador.y += dy * velocidad * segundos;
+
+            miJugador.x = Math.max(20, Math.min(780, miJugador.x));
+            miJugador.y = Math.max(20, Math.min(480, miJugador.y));
+
+            if (dx !== 0 || dy !== 0) {
+                enviarPosicion(performance.now());
+            }
+        }
+
+        // ------------------------------------
+        // POSICIONES VISUALES DE OTROS JUGADORES
+        // ------------------------------------
+
+        function actualizarPosicionesVisuales() {
+            for (const jugador of jugadores) {
+                const elemento = elementosJugadores.get(jugador.id);
+                if (!elemento) continue;
+
+                if (jugador.id === miId) {
+                    elemento.dataset.visualX = miJugador.x;
+                    elemento.dataset.visualY = miJugador.y;
+                } else {
+                    const actualX = Number(elemento.dataset.visualX);
+                    const actualY = Number(elemento.dataset.visualY);
+                    const destinoX = Number(elemento.dataset.targetX);
+                    const destinoY = Number(elemento.dataset.targetY);
+
+                    // Interpolación para reducir saltos visuales.
+                    elemento.dataset.visualX = actualX + (destinoX - actualX) * 0.30;
+                    elemento.dataset.visualY = actualY + (destinoY - actualY) * 0.30;
+                }
+
+                elemento.style.left = `${elemento.dataset.visualX}px`;
+                elemento.style.top = `${elemento.dataset.visualY}px`;
+            }
+        }
+
+        // ------------------------------------
         // BUCLE PRINCIPAL
-        // =========================================
+        // ------------------------------------
 
         function bucle(ahora) {
             const delta = ultimoTiempo
@@ -1075,10 +571,8 @@
 
             ultimoTiempo = ahora;
 
-            moverJugador(delta);
-            enviarPosicion(ahora);
-            actualizarCamara();
-            actualizarHUD();
+            actualizarMovimiento(delta);
+            actualizarPosicionesVisuales();
 
             requestAnimationFrame(bucle);
         }

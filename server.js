@@ -1,4 +1,3 @@
-
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -16,6 +15,26 @@ const ANCHO_CANCHA = 800;
 const ALTO_CANCHA = 500;
 const RADIO_CONTACTO = 40;
 const DURACION_CUENTA = 5;
+
+// --- Reglas de la carrera ---
+const META_X = 740;                 // los aliados llegan a la meta con x >= META_X
+const TIEMPO_PARTIDA = 120;         // segundos; si se acaba, gana el enemigo
+const VEL_ALIADO = 240;             // px/seg (igual que el cliente)
+const VEL_ENEMIGO = 180;
+const TICK_MS = 1000 / 30;          // el servidor emite el estado 30 veces por segundo
+const MAX_DT_MOVIMIENTO_MS = 600;   // tolerancia anti-trampa (lag spikes) en el control de velocidad
+const REINICIO_MS = 6000;           // tiempo antes de volver a elegir roles
+
+// --- Trampas ---
+const TRAMPA_RADIO = 35;
+const TRAMPA_VIDA_MS = 30000;
+const TRAMPA_MAX = 5;
+const TRAMPA_DISTANCIA_MIN_ALIADO = 80;   // no se puede poner pegada a un aliado
+const INMUNIDAD_MS = 1500;                // después de un efecto, no te afecta otra trampa
+const TIPOS_TRAMPA = {
+    lenta: { duracion: 3000, cooldown: 3000 },   // velocidad al 40%
+    hielo: { duracion: 2500, cooldown: 8000 }    // congela por completo
+};
 
 // ========================================
 // CÓDIGO DE SALA
@@ -54,13 +73,38 @@ function contarRoles(sala) {
 // ESTADO Y JUGADORES
 // ========================================
 
+function datosJugador(j, ahora) {
+    return {
+        id: j.id,
+        x: j.x,
+        y: j.y,
+        rol: j.rol,
+        muerto: j.muerto,
+        llego: !!j.llego,
+        congelado: (j.congeladoHasta || 0) > ahora,
+        lento: (j.lentoHasta || 0) > ahora
+    };
+}
+
 function enviarJugadores(codigo) {
     const sala = obtenerSala(codigo);
     if (!sala) return;
 
+    const ahora = Date.now();
+
     io.to(codigo).emit(
         "actualizarJugadores",
-        Array.from(sala.jugadores.values())
+        Array.from(sala.jugadores.values()).map(j => datosJugador(j, ahora))
+    );
+}
+
+function enviarTrampas(codigo) {
+    const sala = obtenerSala(codigo);
+    if (!sala) return;
+
+    io.to(codigo).emit(
+        "actualizarTrampas",
+        sala.trampas.map(t => ({ id: t.id, tipo: t.tipo, x: t.x, y: t.y }))
     );
 }
 
@@ -156,8 +200,20 @@ function iniciarCuentaRegresiva(codigo) {
 
         let indiceAliado = 0;
 
+        sala.trampas = [];
+        sala.cooldownsTrampa = { lenta: 0, hielo: 0 };
+        sala.finPartida = Date.now() + TIEMPO_PARTIDA * 1000;
+        sala.ultimoTiempoEnviado = -1;
+        sala.sucio = true;
+
         for (const jugador of sala.jugadores.values()) {
             jugador.muerto = false;
+            jugador.llego = false;
+            jugador.congeladoHasta = 0;
+            jugador.lentoHasta = 0;
+            jugador.inmuneHasta = 0;
+            jugador.ultimoMov = Date.now();
+            jugador.estadoVisual = "";
 
             if (jugador.rol === "aliado") {
                 const posicion = posicionesAliados[indiceAliado++];
@@ -165,7 +221,7 @@ function iniciarCuentaRegresiva(codigo) {
                 jugador.y = posicion.y;
             } else {
                 // El enemigo empieza bien lejos de los aliados.
-                jugador.x = 700;
+                jugador.x = 560;
                 jugador.y = 250;
             }
         }
@@ -176,49 +232,178 @@ function iniciarCuentaRegresiva(codigo) {
         });
 
         enviarJugadores(codigo);
+        enviarTrampas(codigo);
         console.log(`Partida iniciada en sala ${codigo}`);
     }, 1000);
 }
 
 // ========================================
-// MOVIMIENTO Y CONTACTOS
+// FIN DE PARTIDA Y REINICIO
 // ========================================
 
-function comprobarContactos(codigo, sala, jugador) {
-    if (jugador.rol !== "enemigo" || jugador.muerto) return;
+function resetearSala(codigo) {
+    const sala = obtenerSala(codigo);
+    if (!sala) return;
 
-    for (const otro of sala.jugadores.values()) {
-        if (otro.rol !== "aliado" || otro.muerto) continue;
+    if (sala.timerReset) {
+        clearTimeout(sala.timerReset);
+        sala.timerReset = null;
+    }
 
-        const dx = jugador.x - otro.x;
-        const dy = jugador.y - otro.y;
-        const distancia = Math.sqrt(dx * dx + dy * dy);
+    sala.partidaComenzada = false;
+    sala.partidaTerminada = false;
+    sala.enCuentaRegresiva = false;
+    sala.trampas = [];
 
-        if (distancia < RADIO_CONTACTO) {
-            otro.muerto = true;
+    for (const j of sala.jugadores.values()) {
+        j.rol = null;
+        j.muerto = false;
+        j.llego = false;
+        j.congeladoHasta = 0;
+        j.lentoHasta = 0;
+    }
 
-            io.to(codigo).emit("aliadoMuerto", {
-                id: otro.id
-            });
+    io.to(codigo).emit("volverASeleccion");
+    enviarJugadores(codigo);
+    enviarRoles(codigo);
+}
 
-            console.log(`El enemigo eliminó al aliado ${otro.id}`);
+function terminarPartida(codigo, sala, evento, datos) {
+    if (sala.partidaTerminada) return;
+
+    sala.partidaTerminada = true;
+    sala.partidaComenzada = false;
+
+    io.to(codigo).emit(evento, datos);
+    enviarJugadores(codigo);
+
+    sala.timerReset = setTimeout(() => resetearSala(codigo), REINICIO_MS);
+}
+
+// ========================================
+// SIMULACIÓN DEL SERVIDOR (contactos, trampas, meta)
+// ========================================
+
+function actualizarSala(codigo, sala, ahora) {
+    const jugadores = [...sala.jugadores.values()];
+    const enemigo = jugadores.find(j => j.rol === "enemigo");
+    const aliados = jugadores.filter(j => j.rol === "aliado");
+
+    // 1) El enemigo toca a un aliado (se chequea siempre, se mueva quien se mueva).
+    if (enemigo) {
+        for (const aliado of aliados) {
+            if (aliado.muerto || aliado.llego) continue;
+
+            const dx = enemigo.x - aliado.x;
+            const dy = enemigo.y - aliado.y;
+
+            if (Math.hypot(dx, dy) < RADIO_CONTACTO) {
+                aliado.muerto = true;
+                sala.sucio = true;
+                io.to(codigo).emit("aliadoMuerto", { id: aliado.id });
+                console.log(`El enemigo eliminó al aliado ${aliado.id}`);
+            }
         }
     }
 
-    let aliadosVivos = 0;
+    // 2) Trampas: vencen con el tiempo o se activan al pisarlas.
+    const antes = sala.trampas.length;
 
-    for (const otro of sala.jugadores.values()) {
-        if (otro.rol === "aliado" && !otro.muerto) {
-            aliadosVivos++;
+    sala.trampas = sala.trampas.filter(trampa => {
+        if (ahora >= trampa.venceEn) return false;
+
+        for (const aliado of aliados) {
+            if (aliado.muerto || aliado.llego) continue;
+            if ((aliado.inmuneHasta || 0) > ahora) continue;
+
+            if (Math.hypot(trampa.x - aliado.x, trampa.y - aliado.y) < TRAMPA_RADIO) {
+                const { duracion } = TIPOS_TRAMPA[trampa.tipo];
+
+                if (trampa.tipo === "hielo") {
+                    aliado.congeladoHasta = ahora + duracion;
+                } else {
+                    aliado.lentoHasta = ahora + duracion;
+                }
+
+                aliado.inmuneHasta = ahora + duracion + INMUNIDAD_MS;
+                sala.sucio = true;
+
+                io.to(aliado.id).emit("efecto", { tipo: trampa.tipo, duracion });
+                io.to(codigo).emit("trampaActivada", {
+                    id: trampa.id,
+                    tipo: trampa.tipo,
+                    x: trampa.x,
+                    y: trampa.y
+                });
+
+                return false; // la trampa se consume
+            }
+        }
+
+        return true;
+    });
+
+    if (sala.trampas.length !== antes) enviarTrampas(codigo);
+
+    // 3) Meta
+    for (const aliado of aliados) {
+        if (!aliado.muerto && !aliado.llego && aliado.x >= META_X) {
+            aliado.llego = true;
+            sala.sucio = true;
+            io.to(codigo).emit("aliadoLlego", { id: aliado.id });
         }
     }
 
-    if (aliadosVivos === 0 && !sala.partidaTerminada) {
-        sala.partidaTerminada = true;
-        sala.partidaComenzada = false;
-        io.to(codigo).emit("enemigoGana");
+    // 4) Estado visual (congelado/lento) cambió -> hay que avisar a todos.
+    for (const j of jugadores) {
+        const estado = `${(j.congeladoHasta || 0) > ahora}|${(j.lentoHasta || 0) > ahora}`;
+        if (estado !== j.estadoVisual) {
+            j.estadoVisual = estado;
+            sala.sucio = true;
+        }
+    }
+
+    // 5) Condiciones de victoria
+    const vivos = aliados.filter(a => !a.muerto);
+
+    if (vivos.length > 0 && vivos.every(a => a.llego)) {
+        terminarPartida(codigo, sala, "aliadosGanan", { llegaron: vivos.length });
+        return;
+    }
+
+    if (vivos.length === 0) {
+        terminarPartida(codigo, sala, "enemigoGana", { motivo: "eliminados" });
+        return;
+    }
+
+    const restante = Math.max(0, Math.ceil((sala.finPartida - ahora) / 1000));
+
+    if (restante !== sala.ultimoTiempoEnviado) {
+        sala.ultimoTiempoEnviado = restante;
+        io.to(codigo).emit("tiempoRestante", restante);
+    }
+
+    if (restante <= 0) {
+        terminarPartida(codigo, sala, "enemigoGana", { motivo: "tiempo" });
+        return;
+    }
+
+    // 6) Se manda el estado UNA vez por tick, y solo si cambió algo.
+    if (sala.sucio) {
+        sala.sucio = false;
+        enviarJugadores(codigo);
     }
 }
+
+setInterval(() => {
+    const ahora = Date.now();
+
+    for (const [codigo, sala] of salas) {
+        if (sala.partidaComenzada && !sala.partidaTerminada) {
+            actualizarSala(codigo, sala, ahora);
+        }
+    }
+}, TICK_MS);
 
 // ========================================
 // CONEXIONES
@@ -243,7 +428,14 @@ io.on("connection", socket => {
             partidaComenzada: false,
             partidaTerminada: false,
             enCuentaRegresiva: false,
-            timerCuenta: null
+            timerCuenta: null,
+            timerReset: null,
+            trampas: [],
+            cooldownsTrampa: { lenta: 0, hielo: 0 },
+            siguienteIdTrampa: 1,
+            finPartida: 0,
+            ultimoTiempoEnviado: -1,
+            sucio: false
         };
 
         salas.set(codigo, sala);
@@ -403,18 +595,87 @@ io.on("connection", socket => {
             return;
         }
 
-        jugador.x = Math.max(
-            20,
-            Math.min(ANCHO_CANCHA - 20, posicion.x)
-        );
+        const ahora = Date.now();
+        const dt = Math.min(ahora - (jugador.ultimoMov || ahora), MAX_DT_MOVIMIENTO_MS) / 1000;
+        jugador.ultimoMov = ahora;
 
-        jugador.y = Math.max(
-            20,
-            Math.min(ALTO_CANCHA - 20, posicion.y)
-        );
+        // Congelado: el servidor ignora el movimiento (el cliente tampoco se mueve).
+        if ((jugador.congeladoHasta || 0) > ahora) return;
 
-        comprobarContactos(socket.sala, sala, jugador);
-        enviarJugadores(socket.sala);
+        let nx = Math.max(20, Math.min(ANCHO_CANCHA - 20, posicion.x));
+        let ny = Math.max(20, Math.min(ALTO_CANCHA - 20, posicion.y));
+
+        // Anti-trampa básico: no se puede ir más rápido que la velocidad máxima.
+        const base = jugador.rol === "enemigo" ? VEL_ENEMIGO : VEL_ALIADO;
+        const maxDist = base * dt * 1.3 + 10;
+        const dx = nx - jugador.x;
+        const dy = ny - jugador.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > maxDist) {
+            nx = jugador.x + (dx / dist) * maxDist;
+            ny = jugador.y + (dy / dist) * maxDist;
+            socket.emit("corregirPosicion", { x: nx, y: ny });
+        }
+
+        jugador.x = nx;
+        jugador.y = ny;
+        sala.sucio = true; // el tick se encarga de enviarlo
+    });
+
+    // ------------------------------------
+    // PONER TRAMPA (solo el enemigo)
+    // ------------------------------------
+
+    socket.on("ponerTrampa", tipo => {
+        if (!socket.sala) return;
+
+        const sala = obtenerSala(socket.sala);
+        if (!sala || !sala.partidaComenzada || sala.partidaTerminada) return;
+
+        const jugador = sala.jugadores.get(socket.id);
+        if (!jugador || jugador.rol !== "enemigo") return;
+
+        const config = TIPOS_TRAMPA[tipo];
+        if (!config) return;
+
+        const ahora = Date.now();
+
+        if (ahora < sala.cooldownsTrampa[tipo]) return;
+
+        if (sala.trampas.length >= TRAMPA_MAX) {
+            socket.emit("errorTrampa", `Máximo ${TRAMPA_MAX} trampas a la vez.`);
+            return;
+        }
+
+        if (jugador.x >= META_X - 40) {
+            socket.emit("errorTrampa", "No podés poner trampas pegado a la meta.");
+            return;
+        }
+
+        for (const otro of sala.jugadores.values()) {
+            if (
+                otro.rol === "aliado" &&
+                !otro.muerto &&
+                Math.hypot(otro.x - jugador.x, otro.y - jugador.y) < TRAMPA_DISTANCIA_MIN_ALIADO
+            ) {
+                socket.emit("errorTrampa", "Hay un aliado demasiado cerca.");
+                return;
+            }
+        }
+
+        sala.cooldownsTrampa[tipo] = ahora + config.cooldown;
+
+        sala.trampas.push({
+            id: sala.siguienteIdTrampa++,
+            tipo,
+            x: jugador.x,
+            y: jugador.y,
+            venceEn: ahora + TRAMPA_VIDA_MS
+        });
+
+        enviarTrampas(socket.sala);
+        socket.emit("trampaCooldown", { tipo, ms: config.cooldown });
     });
 
     // ------------------------------------
@@ -436,18 +697,20 @@ io.on("connection", socket => {
 
         if (sala.jugadores.size === 0) {
             if (sala.timerCuenta) clearInterval(sala.timerCuenta);
+            if (sala.timerReset) clearTimeout(sala.timerReset);
             salas.delete(codigo);
             return;
         }
 
-        // Si alguien se va durante la partida, se detiene.
+        // Si alguien se va durante la partida, se cancela y todos vuelven a elegir rol.
         if (sala.partidaComenzada) {
-            sala.partidaComenzada = false;
-            sala.partidaTerminada = false;
             io.to(codigo).emit(
                 "partidaCancelada",
                 "Un jugador se desconectó. La partida se detuvo."
             );
+            resetearSala(codigo);
+            console.log("Jugador desconectado:", socket.id);
+            return;
         }
 
         enviarJugadores(codigo);
